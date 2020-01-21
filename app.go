@@ -11,9 +11,9 @@ import (
 // CallHandler is the essential interface which
 // responses manager's call requests.
 func CallHandler(w http.ResponseWriter, r *http.Request) {
-	resCh := make(chan *string)
+	resCh := make(chan string)
 	name := r.URL.String()
-	go controller.Invoke(context.Background(), &name, nil, &resCh)
+	controller.Invoke(context.Background(), name, nil, resCh)
 	res := <- resCh
     fmt.Fprintln(w, res)
 }

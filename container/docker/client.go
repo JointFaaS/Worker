@@ -28,11 +28,13 @@ func GetDockerClient() *client.Client{
 }
 
 // Alloc starts a specific runtime container
-func Alloc(ctx context.Context, name string, image string) (container.ContainerCreateCreatedBody, error) {
+func Alloc(ctx context.Context, name string, image string, sequence string) (container.ContainerCreateCreatedBody, error) {
 	cc := GetDockerClient()
+
 	os.Mkdir(path.Join("/tmp", name), 0777)
-	syscall.Mkfifo(path.Join("/tmp", name, "down") , 0666)
-	syscall.Mkfifo(path.Join("/tmp", name, "up") , 0666)
+	os.Mkdir(path.Join("/tmp", name, sequence), 0777)
+	syscall.Mkfifo(path.Join("/tmp", name, sequence, "down") , 0666)
+	syscall.Mkfifo(path.Join("/tmp", name, sequence, "up") , 0666)
 
 	body, err := cc.ContainerCreate(ctx, 
 		&container.Config{
@@ -51,11 +53,15 @@ func Alloc(ctx context.Context, name string, image string) (container.ContainerC
 					Target: "/down",
 				},
 			},
+			NetworkMode: "none",
 		},
 		nil, name)
 	return body, err
 }
 
-// func Info() {
-
-// }
+// GetNamedPipeOfEnv returns the up and down pipes for a running container
+func GetNamedPipeOfEnv(name string, sequence string) (*os.File, *os.File, error){
+	up, _ := os.OpenFile(path.Join("/tmp", name, sequence, "up"), os.O_RDWR, os.ModeNamedPipe)
+	down, _ := os.OpenFile(path.Join("/tmp", name, sequence, "down"), os.O_RDWR, os.ModeNamedPipe)
+	return up, down, nil
+}
