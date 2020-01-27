@@ -15,8 +15,9 @@ type Function struct {
 type invocation struct {
 	name string
 	image string
-	args *map[string]interface{}
+	args string
 	res chan string
+	ctx context.Context
 }
 
 type envCreateReady struct {
@@ -35,7 +36,7 @@ func GetFunc(funcName string) *Function {
 }
 
 // Invoke pass a function request to backend
-func Invoke(ctx context.Context, name string, args *map[string]interface{}, res chan string)  {
+func Invoke(ctx context.Context, name string, args string, res chan string)  {
 	jobs <- &invocation{name: name, args: args, res: res}
 }
 
@@ -60,7 +61,6 @@ func alloc(job *invocation, res chan *envCreateReady)  {
 	} else {
 		// TODO
 	}
-
 }
 
 func work() {
