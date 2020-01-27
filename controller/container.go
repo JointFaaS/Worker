@@ -44,3 +44,10 @@ func (c *Client) createContainer(ctx context.Context, name string, image string,
 		nil, name)
 	return body, err
 }
+
+// GetNamedPipeOfEnv returns the up and down pipes for a running container
+func (c *Client) getNamedPipeOfContainer(containerName string) (*os.File, *os.File, error){
+	up, _ := os.OpenFile(path.Join("/tmp", containerName, "up"), os.O_RDWR, os.ModeNamedPipe)
+	down, _ := os.OpenFile(path.Join("/tmp", containerName, "down"), os.O_RDWR, os.ModeNamedPipe)
+	return up, down, nil
+}

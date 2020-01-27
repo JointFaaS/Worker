@@ -2,100 +2,47 @@ package controller
 
 import (
 	"context"
-	"github.com/JointFaas/Worker/container/docker"
-	"sync/atomic"
 )
 
-// Function defines the prop of a function
-type Function struct {
+// FunctionMeta defines the prop of a function
+type FunctionMeta struct {
 	name string
 	image string
-}
-
-type invocation struct {
-	name string
-	image string
-	args string
-	res chan string
-	ctx context.Context
-}
-
-type envCreateReady struct {
-	envID string
-	job *invocation
-	winner bool
-}
-
-var functions map[string]*Function
-var funcEnvs map[string][]string
-var funcCallMetrics map[string]*int32
-var jobs chan *invocation
-// GetFunc converts a id to function struct
-func GetFunc(funcName string) *Function {
-	return functions[funcName]
 }
 
 // Invoke pass a function request to backend
-func Invoke(ctx context.Context, name string, args string, res chan string)  {
-	jobs <- &invocation{name: name, args: args, res: res}
+func (c *Client) Invoke(ctx context.Context, name string, args string, res chan string)  {
+	c.tasks <- &task{funcName: name, args: args, res: res, ctx: ctx}
 }
 
-func dispatch(envName string, job *invocation) {
-
+func dispatch(container *ContainerMeta, t *task) {
+	// TODO
 }
 
-func alloc(job *invocation, res chan *envCreateReady)  {
-	newValue := atomic.AddInt32(funcCallMetrics[job.name], 1)
-	if newValue % 100 == 1 {
-		c, err := docker.Alloc(context.Background(), job.name, job.image, "0")
-		if err != nil {
-	
-		}
-		ecr := &envCreateReady{
-			envID: c.ID,
-			job: job,
-			winner: true,
-		}
-		res <- ecr
-		atomic.AddInt32(funcCallMetrics[job.name], -1)
-	} else {
-		// TODO
-	}
+func (c *Client) randomAvailableContainer(t *task) *ContainerMeta{
+	// TODO
+	return nil
 }
-
-func work() {
-	createEnvCh := make(chan *envCreateReady)
+func (c *Client) work() {
 	for {
 		select {
-		case <- jobs:
-			job := <- jobs
-			availableEnvs := funcEnvs[job.name]
-			if availableEnvs == nil {
-				funcEnvs[job.name] = make([]string, 0)
-				availableEnvs = funcEnvs[job.name]
+		case <- c.tasks:
+			t := <- c.tasks
+			fState, isPresent := c.funcStateMap[t.funcName]
+			if isPresent == false {
+				c.funcStateMap[t.funcName] = cold
+				fState = cold
 			}
-	
-			if len(availableEnvs) != 0 {
-				go dispatch(availableEnvs[0], job)
-			} else {
-				if funcCallMetrics[job.name] == nil {
-					funcCallMetrics[job.name] = new(int32)
-				}
-				go alloc(job, createEnvCh)
-			}
-		case <- createEnvCh:
-			ecr := <- createEnvCh
-			go dispatch(ecr.envID, ecr.job)
-			if ecr.winner {
-				_ = append(funcEnvs[ecr.job.name], ecr.envID)
+
+			if  fState == running {
+				availableContainer := c.randomAvailableContainer(t)
+				go dispatch(availableContainer, t)
+			} else if fState == creating {
+				// TODO
+			} else if fState == cold {
+				c.funcStateMap[t.funcName] = creating
+				// TODO
 			}
 		}
 	}
-}
-// Init should be called before any other func in this file
-func Init() {
-	functions = make(map[string]*Function)
-	funcEnvs = make(map[string][]string)
-	funcCallMetrics = make(map[string]*int32)
-	go work()
 }
