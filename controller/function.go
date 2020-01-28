@@ -4,8 +4,7 @@ import (
 	"context"
 )
 
-// FunctionMeta defines the prop of a function
-type FunctionMeta struct {
+type functionMeta struct {
 	name string
 	image string
 }
@@ -15,14 +14,15 @@ func (c *Client) Invoke(ctx context.Context, name string, args string, res chan 
 	c.tasks <- &task{funcName: name, args: args, res: res, ctx: ctx}
 }
 
-func dispatch(container *ContainerMeta, t *task) {
+func dispatch(container *containerMeta, t *task) {
 	// TODO
 }
 
-func (c *Client) randomAvailableContainer(t *task) *ContainerMeta{
+func (c *Client) randomAvailableContainer(t *task) *containerMeta{
 	// TODO
 	return nil
 }
+
 func (c *Client) work() {
 	for {
 		select {

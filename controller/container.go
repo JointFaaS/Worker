@@ -2,39 +2,52 @@ package controller
 
 import (
 	"context"
-	"syscall"
-	"os"
+	"net"
 	"path"
 	
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/mount"
 )
-// ContainerMeta defines the metadata of a container
-type ContainerMeta struct {
+
+type containerMeta struct {
+	id string
 	funcName string
+	containerName string
 	version int32
-	sequenceID int32
+	conn net.Conn
+	inCh chan []byte
 }
 
-func prepareNamedPipeForContainer(name string) {
-	err := os.Mkdir(path.Join("/tmp", name), 0777)
-	if err != nil {
-		panic(err)
+func (c *containerMeta) work(){
+	out := func ()  {
+		b := *new([]byte)
+		for {
+			n, _ := c.conn.Read(b)
+			if n != 0 {
+				// TODO
+			}
+		}
 	}
-	err = syscall.Mkfifo(path.Join("/tmp", name, "down") , 0666)
-	if err != nil {
-		panic(err)
+	in := func ()  {
+		inMsg := <- c.inCh
+		c.conn.Write(inMsg)
 	}
-	err = syscall.Mkfifo(path.Join("/tmp", name, "up") , 0666)
-	if err != nil {
-		panic(err)
+	go out()
+	go in()
+}
+
+func (c *Client) workForContainerInitialized(){
+	for {
+		_, err := c.unixListener.AcceptUnix()
+		if err != nil {
+			continue
+		}
+		// TODO
 	}
 }
 
 func (c *Client) createContainer(ctx context.Context, containerName string, image string) (container.ContainerCreateCreatedBody, error) {
-	prepareNamedPipeForContainer(containerName)
-
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
 			Image: image,
@@ -74,30 +87,5 @@ func (c *Client) clearContainer(ctx context.Context) (error) {
 		}
 	}
 	return nil
-}
-
-type containerPipe struct {
-	up *os.File
-	down *os.File
-}
-
-// GetNamedPipeOfEnv returns the up and down pipes for a running container
-func (c *Client) getNamedPipeOfContainer(containerName string) (*containerPipe, error){
-	pipes, isPresent := c.containerPipeMap[containerName]
-	if isPresent {
-		return pipes, nil
-	}
-	up, err := os.OpenFile(path.Join("/tmp", containerName, "up"), os.O_RDWR, os.ModeNamedPipe)
-	if err != nil {
-		return nil, err
-	}
-	down, err := os.OpenFile(path.Join("/tmp", containerName, "down"), os.O_RDWR, os.ModeNamedPipe)
-	if err != nil {
-		up.Close()
-		return nil, err
-	}
-	pipes = &containerPipe{up: up, down: down}
-	c.containerPipeMap[containerName] = pipes
-	return pipes, nil
 }
 
