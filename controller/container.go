@@ -3,8 +3,8 @@ package controller
 import (
 	"context"
 	"net"
-	"path"
-	
+	"encoding/binary"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/mount"
@@ -16,12 +16,18 @@ type containerMeta struct {
 	containerName string
 	version int32
 	conn net.Conn
-	inCh chan []byte
+	ctx context.Context
+	cancel func()
 }
 
-func (c *containerMeta) work(){
+func (c *containerMeta) work(funcName string, inTasks chan *task){
+	c.funcName = funcName
+	if c.ctx != nil {
+		c.cancel()
+	}
+	c.ctx, c.cancel = context.WithCancel(context.TODO())
 	out := func ()  {
-		b := *new([]byte)
+		b := make([]byte, 0)
 		for {
 			n, _ := c.conn.Read(b)
 			if n != 0 {
@@ -30,9 +36,18 @@ func (c *containerMeta) work(){
 		}
 	}
 	in := func ()  {
-		inMsg := <- c.inCh
-		c.conn.Write(inMsg)
+		// callID (8bytes) args size (8bytes) args (var-len)
+		b := make([]byte, 8)
+		for {
+			t := <- inTasks
+			size := uint64(len(t.args))
+			binary.PutUvarint(b, t.id)
+			binary.PutUvarint(b[4:], size)
+			c.conn.Write(b)
+			c.conn.Write([]byte(t.args))
+		}
 	}
+
 	go out()
 	go in()
 }
@@ -56,13 +71,8 @@ func (c *Client) createContainer(ctx context.Context, containerName string, imag
 			Mounts: []mount.Mount{
 				mount.Mount{
 					Type: mount.TypeNamedPipe,
-					Source: path.Join("/tmp", containerName, "up"),
-					Target: "/up",
-				},
-				mount.Mount{
-					Type: mount.TypeNamedPipe,
-					Source: path.Join("/tmp", containerName, "down"),
-					Target: "/down",
+					Source: "/var/run/worker.sock",
+					Target: "/var/run/worker.sock",
 				},
 			},
 			NetworkMode: "none",
