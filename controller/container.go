@@ -52,16 +52,6 @@ func (c *containerMeta) work(funcName string, inTasks chan *task){
 	go in()
 }
 
-func (c *Client) workForContainerInitialized(){
-	for {
-		_, err := c.unixListener.AcceptUnix()
-		if err != nil {
-			continue
-		}
-		// TODO
-	}
-}
-
 func (c *Client) createContainer(ctx context.Context, containerName string, image string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
@@ -70,7 +60,7 @@ func (c *Client) createContainer(ctx context.Context, containerName string, imag
 		&container.HostConfig{
 			Mounts: []mount.Mount{
 				mount.Mount{
-					Type: mount.TypeNamedPipe,
+					Type: mount.TypeBind,
 					Source: "/var/run/worker.sock",
 					Target: "/var/run/worker.sock",
 				},

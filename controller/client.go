@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"runtime"
 	"net"
 	dc "github.com/docker/docker/client"
 )
@@ -30,9 +31,15 @@ type Client struct {
 
 	tasks chan *task
 
+	createContainerResponse chan *containerMeta
+
 	funcStateMap map[string]funcState
 
 	containerMap map[string][]containerMeta
+
+	ctx context.Context
+
+	cancel context.CancelFunc
 }
 
 // Config is used to initialize controller client
@@ -55,13 +62,22 @@ func NewClient(config *Config) (*Client, error){
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(context.TODO())
 	c := &Client{
 		dockerClient: dockerClient,
 		tasks: make(chan * task),
+		createContainerResponse: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
 		containerMap: make(map[string][]containerMeta),
+		ctx: ctx,
+		cancel: cancel,
 	}
-	go c.work()
+	runtime.SetFinalizer(c, clientFinalizer)
+	go c.work(ctx)
 	return c, nil
+}
+
+func clientFinalizer(c *Client) {
+	c.cancel()
 }

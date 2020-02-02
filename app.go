@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+	"time"
 	"context"
 	"log"
 	"net/http"
@@ -21,10 +22,12 @@ func main() {
 	}
 	callHandler := func (w http.ResponseWriter, r *http.Request) {
 		var req callRequestBody
-		json.NewDecoder(r.Body).Decode(&req)
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			return
+		}
 		resCh := make(chan string)
-		ctx := context.TODO()
-		// ctx, cancel := context.WithCancel(context.TODO())
+		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
 		client.Invoke(ctx, req.funcName, req.args, resCh)
 		select {
