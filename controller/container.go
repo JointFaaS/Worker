@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"encoding/binary"
+	"io"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types"
@@ -16,47 +17,57 @@ type containerMeta struct {
 	containerName string
 	version int32
 	conn net.Conn
-	ctx context.Context
-	cancel func()
+	waitedTasks map[uint64]*task
+	inTasks chan *task
+	outResponses chan *response
 }
 
-func (c *containerMeta) work(funcName string, inTasks chan *task){
-	c.funcName = funcName
-	if c.ctx != nil {
-		c.cancel()
-	}
-	c.ctx, c.cancel = context.WithCancel(context.TODO())
+type response struct {
+	id uint64
+	res []byte
+}
+
+func (c *containerMeta) work(){
 	out := func ()  {
 		b := make([]byte, 0)
 		for {
-			n, _ := c.conn.Read(b)
-			if n != 0 {
-				// TODO
+			// ID (8bytes) res size (8bytes) res (var-len)
+			n, _ := io.ReadAtLeast(c.conn, b, 16)
+			id, _ := binary.Uvarint(b)
+			resLen, _ := binary.Uvarint(b[8:])
+			if (uint64)(n - 16) >= resLen {
+				c.outResponses <- &response{
+					id: id,
+					res: b[16:],
+				}
 			}
 		}
 	}
-	in := func ()  {
-		// callID (8bytes) args size (8bytes) args (var-len)
-		b := make([]byte, 8)
-		for {
-			t := <- inTasks
+	go out()
+	// ID (8bytes) args size (8bytes) args (var-len)
+	b := make([]byte, 8)
+	for {
+		select {
+		case t := <- c.inTasks:
 			size := uint64(len(t.args))
 			binary.PutUvarint(b, t.id)
 			binary.PutUvarint(b[4:], size)
 			c.conn.Write(b)
 			c.conn.Write([]byte(t.args))
+			c.waitedTasks[t.id] = t
+		case r := <- c.outResponses:
+			c.waitedTasks[r.id].res <- r.res
+			delete(c.waitedTasks, r.id)
 		}
-	}
 
-	go out()
-	go in()
+	}
 }
 
-func (c *Client) createContainer(ctx context.Context, containerName string, image string) (container.ContainerCreateCreatedBody, error) {
+func (c *Client) createContainer(ctx context.Context, image string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
 			Image: image,
-		},  
+		}, 
 		&container.HostConfig{
 			Mounts: []mount.Mount{
 				mount.Mount{
@@ -67,7 +78,8 @@ func (c *Client) createContainer(ctx context.Context, containerName string, imag
 			},
 			NetworkMode: "none",
 		},
-		nil, containerName)
+		nil, "")
+	
 	return body, err
 }
 

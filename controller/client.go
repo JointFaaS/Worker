@@ -10,7 +10,7 @@ import (
 type task struct {
 	funcName string
 	args string
-	res chan string
+	res chan []byte
 	id uint64
 	ctx context.Context
 }
@@ -36,6 +36,8 @@ type Client struct {
 	funcStateMap map[string]funcState
 
 	containerMap map[string][]containerMeta
+
+	subTasks map[string]chan *task
 
 	ctx context.Context
 
@@ -74,7 +76,7 @@ func NewClient(config *Config) (*Client, error){
 		cancel: cancel,
 	}
 	runtime.SetFinalizer(c, clientFinalizer)
-	go c.work(ctx)
+	go c.workForExternalRequest(ctx)
 	return c, nil
 }
 

@@ -26,7 +26,7 @@ func main() {
 		if err != nil {
 			return
 		}
-		resCh := make(chan string)
+		resCh := make(chan []byte)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
 		client.Invoke(ctx, req.funcName, req.args, resCh)
