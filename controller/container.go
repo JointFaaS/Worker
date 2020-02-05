@@ -2,13 +2,16 @@ package controller
 
 import (
 	"context"
+	"time"
 	"net"
 	"encoding/binary"
 	"io"
+	"bytes"
+	"sync"
+	"encoding/json"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/mount"
 )
 
 type containerMeta struct {
@@ -34,7 +37,7 @@ func (c *containerMeta) work(){
 			// ID (8bytes) res size (8bytes) res (var-len)
 			n, _ := io.ReadAtLeast(c.conn, b, 16)
 			id, _ := binary.Uvarint(b)
-			resLen, _ := binary.Uvarint(b[8:])
+			resLen := binary.BigEndian.Uint64(b[8:])
 			if (uint64)(n - 16) >= resLen {
 				c.outResponses <- &response{
 					id: id,
@@ -45,13 +48,13 @@ func (c *containerMeta) work(){
 	}
 	go out()
 	// ID (8bytes) args size (8bytes) args (var-len)
-	b := make([]byte, 8)
+	b := make([]byte, 16)
 	for {
 		select {
 		case t := <- c.inTasks:
 			size := uint64(len(t.args))
 			binary.PutUvarint(b, t.id)
-			binary.PutUvarint(b[4:], size)
+			binary.BigEndian.PutUint64(b[8:], size)
 			c.conn.Write(b)
 			c.conn.Write([]byte(t.args))
 			c.waitedTasks[t.id] = t
@@ -69,17 +72,12 @@ func (c *Client) createContainer(ctx context.Context, image string) (container.C
 			Image: image,
 		}, 
 		&container.HostConfig{
-			Mounts: []mount.Mount{
-				mount.Mount{
-					Type: mount.TypeBind,
-					Source: "/var/run/worker.sock",
-					Target: "/var/run/worker.sock",
-				},
+			Binds: []string{
+				c.config.SocketPath + ":/var/run/worker.sock",
 			},
 			NetworkMode: "none",
 		},
 		nil, "")
-	
 	return body, err
 }
 
@@ -101,3 +99,54 @@ func (c *Client) clearContainer(ctx context.Context) (error) {
 	return nil
 }
 
+func (c *Client) workForContainerRegistration() {
+	for {
+		unixConn, err := c.unixListener.AcceptUnix()
+		if err != nil {
+			continue
+		}
+		go c.registerHelper(unixConn)
+	}
+}
+
+type registerBody struct {
+	funcName string
+	envID string
+}
+
+func (c *Client) registerHelper(unixConn *net.UnixConn) {
+	b := make([]byte, 4096)
+	buf := bytes.NewBuffer(make([]byte, 0))
+	header := make([]byte, 16)
+	var bodyLen uint64
+	o := &sync.Once{}
+	for {
+		if err := unixConn.SetReadDeadline(time.Now().Add(time.Second*10)); err != nil {
+			return
+		}
+		n, err := unixConn.Read(b)
+		if err != nil {
+			break
+		}
+		buf.Write(b[:n])
+		o.Do(func() {
+			if buf.Len() >= 16 {
+				buf.Read(header)
+				bodyLen = binary.BigEndian.Uint64(header[8:16])
+			}
+		})
+
+		if uint64(buf.Len()) >= bodyLen {
+			break
+		}
+	}
+	if err := unixConn.SetReadDeadline(time.Time{}); err != nil {
+		return
+	}
+	var regBody registerBody
+	err := json.NewDecoder(buf).Decode(&regBody)
+	if err != nil {
+		return
+	}
+	c.containerRegistration <- &regBody
+}

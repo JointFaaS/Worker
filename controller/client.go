@@ -6,7 +6,9 @@ import (
 	"net"
 	dc "github.com/docker/docker/client"
 )
-
+const (
+	socketPath string = "/var/run/worker.sock"
+)
 type task struct {
 	funcName string
 	args string
@@ -14,13 +16,6 @@ type task struct {
 	id uint64
 	ctx context.Context
 }
-
-type funcState string
-const (
-	running funcState = "running"
-	creating funcState = "creating"
-	cold funcState = "cold"
-)
 
 // Client is the API client that performs all operations
 // against a Worker.
@@ -30,6 +25,8 @@ type Client struct {
 	unixListener *net.UnixListener
 
 	tasks chan *task
+
+	containerRegistration chan *registerBody
 
 	createContainerResponse chan *containerMeta
 
@@ -42,17 +39,19 @@ type Client struct {
 	ctx context.Context
 
 	cancel context.CancelFunc
+
+	config *Config
 }
 
 // Config is used to initialize controller client
 // It supports adjusting the resource limits 
 type Config struct {
-
+	SocketPath string
 }
 
 // NewClient initializes a new API client
 func NewClient(config *Config) (*Client, error){
-	unixAddr, err := net.ResolveUnixAddr("unix", "/var/run/worker.sock")
+	unixAddr, err := net.ResolveUnixAddr("unix", config.SocketPath)
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +66,16 @@ func NewClient(config *Config) (*Client, error){
 	ctx, cancel := context.WithCancel(context.TODO())
 	c := &Client{
 		dockerClient: dockerClient,
-		tasks: make(chan * task),
+		tasks: make(chan * task, 256),
+		containerRegistration: make(chan *registerBody),
 		createContainerResponse: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
 		containerMap: make(map[string][]containerMeta),
+		subTasks: make(map[string]chan *task),
 		ctx: ctx,
 		cancel: cancel,
+		config: config,
 	}
 	runtime.SetFinalizer(c, clientFinalizer)
 	go c.workForExternalRequest(ctx)

@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+	"os"
 	"time"
 	"context"
 	"log"
@@ -15,8 +16,16 @@ type callRequestBody struct {
 	args string
 }
 
+func logInit() {
+	log.SetPrefix("TRACE: ")
+    log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
+}
+
 func main() {
-	client, err := controller.NewClient(&controller.Config{})
+	logInit()
+	client, err := controller.NewClient(&controller.Config{
+		SocketPath: os.Getenv("WORKER_SOCKET_PATH"),
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +46,7 @@ func main() {
 			fmt.Fprintln(w, msg)
 		}
 	}
-    http.HandleFunc("/call", callHandler)
+	http.HandleFunc("/call", callHandler)
+	log.Print("start listening")
     log.Fatal(http.ListenAndServe("0.0.0.0:8000", nil))
 }
