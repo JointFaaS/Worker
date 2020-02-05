@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"log"
+	"github.com/docker/docker/api/types"
 )
 
 type functionMeta struct {
@@ -42,10 +43,13 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 				c.funcStateMap[t.funcName] = running
 				c.subTasks[t.funcName] <- t
 				go func ()  {
-					_, err := c.createContainer(context.TODO(), c.convertFuncNameToImageName(t.funcName))
+					body, err := c.createContainer(context.TODO(), c.convertFuncNameToImageName(t.funcName))
 					if err != nil {
 						log.Print(err.Error())
+					} else {
+						c.dockerClient.ContainerStart(context.TODO(), body.ID, types.ContainerStartOptions{})
 					}
+
 				}()
 			}
 		case ccr := <- c.createContainerResponse:

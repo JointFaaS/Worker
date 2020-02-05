@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"log"
 	"time"
 	"net"
 	"encoding/binary"
@@ -105,7 +106,13 @@ func (c *Client) workForContainerRegistration() {
 		if err != nil {
 			continue
 		}
-		go c.registerHelper(unixConn)
+		log.Printf("%s connected", unixConn.RemoteAddr().String())
+		go func ()  {
+			err := c.registerHelper(unixConn)
+			if err != nil {
+				log.Print(err.Error())
+			}
+		}() 
 	}
 }
 
@@ -114,15 +121,15 @@ type registerBody struct {
 	envID string
 }
 
-func (c *Client) registerHelper(unixConn *net.UnixConn) {
+func (c *Client) registerHelper(unixConn *net.UnixConn) error {
 	b := make([]byte, 4096)
 	buf := bytes.NewBuffer(make([]byte, 0))
 	header := make([]byte, 16)
 	var bodyLen uint64
 	o := &sync.Once{}
 	for {
-		if err := unixConn.SetReadDeadline(time.Now().Add(time.Second*10)); err != nil {
-			return
+		if err := unixConn.SetReadDeadline(time.Now().Add(time.Second*3)); err != nil {
+			return err
 		}
 		n, err := unixConn.Read(b)
 		if err != nil {
@@ -141,12 +148,14 @@ func (c *Client) registerHelper(unixConn *net.UnixConn) {
 		}
 	}
 	if err := unixConn.SetReadDeadline(time.Time{}); err != nil {
-		return
+		return err
 	}
 	var regBody registerBody
 	err := json.NewDecoder(buf).Decode(&regBody)
 	if err != nil {
-		return
+		return err
 	}
+	log.Printf("%s register", regBody.funcName)
 	c.containerRegistration <- &regBody
+	return nil
 }

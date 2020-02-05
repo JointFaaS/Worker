@@ -79,9 +79,12 @@ func NewClient(config *Config) (*Client, error){
 	}
 	runtime.SetFinalizer(c, clientFinalizer)
 	go c.workForExternalRequest(ctx)
+	go c.workForContainerRegistration()
 	return c, nil
 }
 
 func clientFinalizer(c *Client) {
 	c.cancel()
+	c.dockerClient.Close()
+	c.unixListener.Close()
 }
