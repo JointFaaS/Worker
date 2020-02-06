@@ -55,7 +55,8 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 		case ccr := <- c.createContainerResponse:
 			ccr.inTasks = c.subTasks[ccr.funcName]
 			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], *ccr)
-			go ccr.work()
+			go ccr.workForIn()
+			go ccr.workForOut()
 		case <- ctx.Done():
 			return
 		}
