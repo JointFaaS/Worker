@@ -5,6 +5,7 @@ import (
 	"time"
 	"encoding/binary"
 	"bytes"
+	"log"
 )
 
 type interactionPackage struct {
@@ -60,6 +61,7 @@ func (cc *containerConn) read() (*interactionPackage, error) {
 	if cc.state == waittingBody {
 		if uint64(cc.buf.Len()) >= cc.headerCache.length {
 			p := cc.buf.Next(int(cc.headerCache.length))
+			log.Printf("body: %s", string(p))
 			return &interactionPackage{
 				cc.headerCache,
 				p,

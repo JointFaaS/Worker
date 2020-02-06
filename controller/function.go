@@ -24,9 +24,14 @@ func (c *Client) Invoke(ctx context.Context, name string, args string, res chan 
 }
 
 func (c *Client) workForExternalRequest(ctx context.Context) {
+	var idGenerator uint64
+	idGenerator = 0
 	for {
 		select {
 		case t := <- c.tasks:
+			// set unique id
+			t.id = idGenerator
+			idGenerator++
 			fState, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == false {
 				log.Print("Cold Function Request")
@@ -43,7 +48,11 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 				c.funcStateMap[t.funcName] = running
 				c.subTasks[t.funcName] <- t
 				go func ()  {
-					body, err := c.createContainer(context.TODO(), c.convertFuncNameToImageName(t.funcName))
+					body, err := c.createContainer(
+						context.TODO(),
+						map[string]string{"id": string(idGenerator)},
+						[]string{"funcName="+t.funcName, "envID="+string(idGenerator)},
+						c.convertFuncNameToImageName(t.funcName))
 					if err != nil {
 						log.Print(err.Error())
 					} else {
@@ -52,7 +61,8 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 
 				}()
 			}
-		case ccr := <- c.createContainerResponse:
+		case ccr := <- c.containerRegistration:
+			log.Printf("%s start working", ccr.id)
 			ccr.inTasks = c.subTasks[ccr.funcName]
 			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], *ccr)
 			go ccr.workForIn()

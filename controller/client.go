@@ -26,9 +26,7 @@ type Client struct {
 
 	tasks chan *task
 
-	containerRegistration chan *registerBody
-
-	createContainerResponse chan *containerMeta
+	containerRegistration chan *containerMeta
 
 	funcStateMap map[string]funcState
 
@@ -67,8 +65,7 @@ func NewClient(config *Config) (*Client, error){
 	c := &Client{
 		dockerClient: dockerClient,
 		tasks: make(chan * task, 256),
-		containerRegistration: make(chan *registerBody),
-		createContainerResponse: make(chan *containerMeta),
+		containerRegistration: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
 		containerMap: make(map[string][]containerMeta),

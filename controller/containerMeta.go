@@ -2,13 +2,12 @@ package controller
 
 import (
 	"time"
+	"log"
 )
 
 type containerMeta struct {
 	id string
 	funcName string
-	containerName string
-	version int32
 	conn *containerConn
 	waitedTasks map[uint64]*task
 	inTasks chan *task
@@ -24,6 +23,7 @@ func (c *containerMeta) workForIn() {
 	for {
 		select {
 		case t := <- c.inTasks:
+			log.Printf("%s get inTask", c.id)
 			c.waitedTasks[t.id] = t
 			ib := &interactionPackage{
 				interactionHeader{
@@ -54,10 +54,21 @@ func (c *containerMeta) workForOut() {
 			// poll
 			c.conn.poll(time.Now().Add(time.Second))
 		} else {
+			log.Printf("%ul response", p.id)
 			c.outResponses <- &response{
 				id: p.id,
 				res: p.body,
 			}
 		}
+	}
+}
+
+func newContainerMeta(id string, funcName string, cc *containerConn) *containerMeta {
+	return &containerMeta{
+		id: id,
+		funcName: funcName,
+		conn: cc,
+		waitedTasks: make(map[uint64]*task),
+		outResponses: make(chan *response),
 	}
 }

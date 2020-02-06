@@ -30,11 +30,13 @@ func (c *Client) clearContainer(ctx context.Context) (error) {
 	return nil
 }
 
-func (c *Client) createContainer(ctx context.Context, image string) (container.ContainerCreateCreatedBody, error) {
+func (c *Client) createContainer(ctx context.Context, labels map[string]string, envs []string, image string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
 			Image: image,
-		}, 
+			Env: envs,
+			Labels: labels,
+		},
 		&container.HostConfig{
 			Binds: []string{
 				c.config.SocketPath + ":/var/run/worker.sock",
@@ -51,7 +53,7 @@ func (c *Client) workForContainerRegistration() {
 		if err != nil {
 			continue
 		}
-		log.Printf("%s connected", unixConn.RemoteAddr().String())
+		log.Printf("new connection")
 		go func ()  {
 			err := c.registerHelper(unixConn)
 			if err != nil {
@@ -82,8 +84,7 @@ func (c *Client) registerHelper(unixConn *net.UnixConn) error {
 			if err != nil {
 				return err
 			}
-			log.Printf("%s register", regBody.funcName)
-			c.containerRegistration <- &regBody
+			c.containerRegistration <- newContainerMeta(regBody.envID, regBody.funcName, cc)
 			return nil
 		}
 	}
