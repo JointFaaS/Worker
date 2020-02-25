@@ -87,6 +87,7 @@ func NewClient(config *Config) (*Client, error){
 		containerRegistration: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
+		funcResourceMap: make(map[string]*funcResource),
 		containerMap: make(map[string][]containerMeta),
 		subTasks: make(map[string]chan *task),
 		ctx: ctx,
