@@ -11,15 +11,15 @@ import (
 	"github.com/JointFaas/Worker/controller"
 )
 
-type callRequestBody struct {
-	funcName string
-	args string
+type CallRequestBody struct {
+	FuncName string
+	Args string
 }
 
-type initRequestBody struct {
-	funcName string
-	image string
-	codeURI string
+type InitRequestBody struct {
+	FuncName string
+	Image string
+	CodeURI string
 }
 
 func logInit() {
@@ -36,7 +36,7 @@ func main() {
 		panic(err)
 	}
 	callHandler := func (w http.ResponseWriter, r *http.Request) {
-		var req callRequestBody
+		var req CallRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -45,7 +45,7 @@ func main() {
 		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
-		client.Invoke(ctx, req.funcName, req.args, resCh)
+		client.Invoke(ctx, req.FuncName, req.Args, resCh)
 		select {
 		case res := <- resCh:
 			if res.Err != nil {
@@ -57,7 +57,7 @@ func main() {
 		}
 	}
 	initHandler := func(w http.ResponseWriter, r *http.Request) {
-		var req initRequestBody
+		var req InitRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -66,7 +66,7 @@ func main() {
 		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
-		client.Init(ctx, req.funcName, req.image, req.codeURI, resCh)
+		client.Init(ctx, req.FuncName, req.Image, req.CodeURI, resCh)
 		select {
 		case res := <- resCh:
 			if res.Err != nil {
