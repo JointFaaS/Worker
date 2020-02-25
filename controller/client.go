@@ -19,7 +19,6 @@ type task struct {
 	funcName string
 	args string
 	res chan *Response
-	id uint64
 	ctx context.Context
 }
 

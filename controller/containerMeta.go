@@ -20,18 +20,21 @@ type response struct {
 }
 
 func (c *containerMeta) workForIn() {
+	var taskID uint64
+	taskID = 0
 	for {
 		select {
 		case t := <- c.inTasks:
 			log.Printf("%s get inTask", c.id)
-			c.waitedTasks[t.id] = t
+			c.waitedTasks[taskID] = t
 			ib := &interactionPackage{
 				interactionHeader{
-					t.id,
+					taskID,
 					uint64(len(t.args)),
 				},
 				[]byte(t.args),
 			}
+			taskID++
 			if err := c.conn.write(ib); err != nil {
 				// TODO
 				panic(err)

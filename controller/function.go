@@ -30,8 +30,6 @@ func (c *Client) Init(ctx context.Context, name string, image string, codeURI st
 }
 
 func (c *Client) workForExternalRequest(ctx context.Context) {
-	var idGenerator uint64
-	idGenerator = 0
 	for {
 		select {
 		case t := <- c.initTasks:
@@ -54,8 +52,8 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			go func ()  {
 				body, err := c.createContainer(
 					context.TODO(),
-					map[string]string{"id": string(idGenerator)},
-					[]string{"funcName="+t.funcName, "envID="+string(idGenerator)},
+					map[string]string{"funcName": t.funcName},
+					[]string{"funcName="+t.funcName},
 					fr.image,
 					fr.sourceCodeDir)
 				if err != nil {
@@ -68,9 +66,6 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			}()
 
 		case t := <- c.tasks:
-			// set unique id
-			t.id = idGenerator
-			idGenerator++
 			fState, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == false {
 				t.res <- nil
