@@ -17,7 +17,7 @@ type Response struct {
 }
 type task struct {
 	funcName string
-	args string
+	args []byte
 	res chan *Response
 	ctx context.Context
 }

@@ -32,7 +32,7 @@ func (c *containerMeta) workForIn() {
 					taskID,
 					uint64(len(t.args)),
 				},
-				[]byte(t.args),
+				t.args,
 			}
 			taskID++
 			if err := c.conn.write(ib); err != nil {

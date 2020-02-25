@@ -45,13 +45,13 @@ func main() {
 		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
-		client.Invoke(ctx, req.FuncName, req.Args, resCh)
+		client.Invoke(ctx, req.FuncName, []byte(req.Args), resCh)
 		select {
 		case res := <- resCh:
 			if res.Err != nil {
 				http.Error(w, res.Err.Error(), http.StatusBadRequest)
 			}
-			fmt.Fprintln(w, res)
+			w.Write(*res.Body)
 		case msg := <- ctx.Done():
 			fmt.Fprintln(w, msg)
 		}

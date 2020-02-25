@@ -21,7 +21,7 @@ const (
 )
 
 // Invoke pass a function request to backend
-func (c *Client) Invoke(ctx context.Context, name string, args string, res chan *Response)  {
+func (c *Client) Invoke(ctx context.Context, name string, args []byte, res chan *Response)  {
 	c.tasks <- &task{funcName: name, args: args, res: res, ctx: ctx}
 }
 
