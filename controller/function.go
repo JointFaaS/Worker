@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/docker/docker/api/types"
@@ -35,18 +36,18 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 		case t := <- c.initTasks:
 			_, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == true {
-				t.res <- nil
+				t.res <- &Response{Err: errors.New("Init Repeatly")}
 				continue
 			}
 			log.Print("Init Function Request")
 			fr, err := newFuncResource(t.funcName, t.image, t.codeURI)
 			if err != nil {
-				t.res <- &Response{Err: err, Body: nil}
+				t.res <- &Response{Err: err}
 				continue
 			}
 			c.funcResourceMap[t.funcName] = fr
 			c.funcStateMap[t.funcName] = running
-			c.containerMap[t.funcName] = make([]containerMeta, 0)
+			c.containerMap[t.funcName] = make([]*containerMeta, 0)
 			c.subTasks[t.funcName] = make(chan *task, 100)
 			log.Print("create container")
 			go func ()  {
@@ -58,7 +59,7 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 					fr.sourceCodeDir)
 				if err != nil {
 					log.Print(err.Error())
-					t.res <- nil
+					t.res <- &Response{Err: err}
 				} else {
 					c.dockerClient.ContainerStart(context.TODO(), body.ID, types.ContainerStartOptions{})
 					t.res <- &Response{Err: nil, Body: nil}
@@ -66,6 +67,7 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			}()
 
 		case t := <- c.tasks:
+			log.Printf("%s invoke", t.funcName)
 			fState, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == false {
 				t.res <- nil
@@ -77,12 +79,13 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 				t.res <- nil
 			}
 		case ccr := <- c.containerRegistration:
-			log.Printf("%s start working", ccr.id)
+			log.Printf("%s start working for %s", ccr.id, ccr.funcName)
 			ccr.inTasks = c.subTasks[ccr.funcName]
-			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], *ccr)
+			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], ccr)
 			go ccr.workForIn()
 			go ccr.workForOut()
 		case <- ctx.Done():
+			log.Print("Controller Exits")
 			return
 		}
 	}

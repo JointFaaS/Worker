@@ -47,7 +47,7 @@ type Client struct {
 
 	funcResourceMap map[string]*funcResource
 
-	containerMap map[string][]containerMeta
+	containerMap map[string][]*containerMeta
 
 	subTasks map[string]chan *task
 
@@ -87,7 +87,7 @@ func NewClient(config *Config) (*Client, error){
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
 		funcResourceMap: make(map[string]*funcResource),
-		containerMap: make(map[string][]containerMeta),
+		containerMap: make(map[string][]*containerMeta),
 		subTasks: make(map[string]chan *task),
 		ctx: ctx,
 		cancel: cancel,
