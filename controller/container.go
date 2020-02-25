@@ -65,8 +65,8 @@ func (c *Client) workForContainerRegistration() {
 }
 
 type registerBody struct {
-	funcName string
-	envID string
+	FuncName string `json:"funcName"`
+	EnvID string `json:"envID"`
 }
 
 func (c *Client) registerHelper(unixConn *net.UnixConn) error {
@@ -85,7 +85,7 @@ func (c *Client) registerHelper(unixConn *net.UnixConn) error {
 			if err != nil {
 				return err
 			}
-			c.containerRegistration <- newContainerMeta(regBody.envID, regBody.funcName, cc)
+			c.containerRegistration <- newContainerMeta(regBody.EnvID, regBody.FuncName, cc)
 			return nil
 		}
 	}
