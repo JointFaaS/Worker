@@ -30,7 +30,7 @@ func (c *Client) clearContainer(ctx context.Context) (error) {
 	return nil
 }
 
-func (c *Client) createContainer(ctx context.Context, labels map[string]string, envs []string, image string) (container.ContainerCreateCreatedBody, error) {
+func (c *Client) createContainer(ctx context.Context, labels map[string]string, envs []string, image string, codeDir string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
 			Image: image,
@@ -40,6 +40,7 @@ func (c *Client) createContainer(ctx context.Context, labels map[string]string, 
 		&container.HostConfig{
 			Binds: []string{
 				c.config.SocketPath + ":/var/run/worker.sock",
+				codeDir + ":/tmp/code",
 			},
 			NetworkMode: "none",
 		},
@@ -64,8 +65,8 @@ func (c *Client) workForContainerRegistration() {
 }
 
 type registerBody struct {
-	funcName string
-	envID string
+	FuncName string `json:"funcName"`
+	EnvID string `json:"envID"`
 }
 
 func (c *Client) registerHelper(unixConn *net.UnixConn) error {
@@ -84,7 +85,7 @@ func (c *Client) registerHelper(unixConn *net.UnixConn) error {
 			if err != nil {
 				return err
 			}
-			c.containerRegistration <- newContainerMeta(regBody.envID, regBody.funcName, cc)
+			c.containerRegistration <- newContainerMeta(regBody.EnvID, regBody.FuncName, cc)
 			return nil
 		}
 	}

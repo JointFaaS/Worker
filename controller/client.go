@@ -9,11 +9,24 @@ import (
 const (
 	socketPath string = "/var/run/worker.sock"
 )
+
+// Response is used in async ret
+type Response struct {
+	Err error
+	Body *[]byte
+}
 type task struct {
 	funcName string
-	args string
-	res chan []byte
-	id uint64
+	args []byte
+	res chan *Response
+	ctx context.Context
+}
+
+type initTask struct {
+	funcName string
+	image string
+	codeURI string
+	res chan *Response
 	ctx context.Context
 }
 
@@ -26,11 +39,15 @@ type Client struct {
 
 	tasks chan *task
 
+	initTasks chan *initTask
+
 	containerRegistration chan *containerMeta
 
 	funcStateMap map[string]funcState
 
-	containerMap map[string][]containerMeta
+	funcResourceMap map[string]*funcResource
+
+	containerMap map[string][]*containerMeta
 
 	subTasks map[string]chan *task
 
@@ -65,10 +82,12 @@ func NewClient(config *Config) (*Client, error){
 	c := &Client{
 		dockerClient: dockerClient,
 		tasks: make(chan * task, 256),
+		initTasks: make(chan *initTask, 8),
 		containerRegistration: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),
-		containerMap: make(map[string][]containerMeta),
+		funcResourceMap: make(map[string]*funcResource),
+		containerMap: make(map[string][]*containerMeta),
 		subTasks: make(map[string]chan *task),
 		ctx: ctx,
 		cancel: cancel,

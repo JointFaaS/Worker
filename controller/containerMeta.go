@@ -20,24 +20,27 @@ type response struct {
 }
 
 func (c *containerMeta) workForIn() {
+	var taskID uint64
+	taskID = 0
 	for {
 		select {
 		case t := <- c.inTasks:
 			log.Printf("%s get inTask", c.id)
-			c.waitedTasks[t.id] = t
+			c.waitedTasks[taskID] = t
 			ib := &interactionPackage{
 				interactionHeader{
-					t.id,
+					taskID,
 					uint64(len(t.args)),
 				},
-				[]byte(t.args),
+				t.args,
 			}
+			taskID++
 			if err := c.conn.write(ib); err != nil {
 				// TODO
 				panic(err)
 			}
 		case r := <- c.outResponses:
-			c.waitedTasks[r.id].res <- r.res
+			c.waitedTasks[r.id].res <- &Response{Err: nil, Body: &r.res}
 			delete(c.waitedTasks, r.id)
 		}
 	}

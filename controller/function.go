@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"log"
+
 	"github.com/docker/docker/api/types"
 )
 
@@ -19,55 +21,72 @@ const (
 )
 
 // Invoke pass a function request to backend
-func (c *Client) Invoke(ctx context.Context, name string, args string, res chan []byte)  {
+func (c *Client) Invoke(ctx context.Context, name string, args []byte, res chan *Response)  {
 	c.tasks <- &task{funcName: name, args: args, res: res, ctx: ctx}
 }
 
+// Init creates a congtainer env
+func (c *Client) Init(ctx context.Context, name string, image string, codeURI string, res chan *Response) {
+	c.initTasks <- &initTask{funcName: name, image: image, codeURI: codeURI, res: res, ctx: ctx}
+}
+
 func (c *Client) workForExternalRequest(ctx context.Context) {
-	var idGenerator uint64
-	idGenerator = 0
 	for {
 		select {
+		case t := <- c.initTasks:
+			_, isPresent := c.funcStateMap[t.funcName]
+			if isPresent == true {
+				t.res <- &Response{Err: errors.New("Init Repeatly")}
+				continue
+			}
+			log.Print("Init Function Request")
+			fr, err := newFuncResource(t.funcName, t.image, t.codeURI)
+			if err != nil {
+				t.res <- &Response{Err: err}
+				continue
+			}
+			c.funcResourceMap[t.funcName] = fr
+			c.funcStateMap[t.funcName] = running
+			c.containerMap[t.funcName] = make([]*containerMeta, 0)
+			c.subTasks[t.funcName] = make(chan *task, 100)
+			log.Print("create container")
+			go func ()  {
+				body, err := c.createContainer(
+					context.TODO(),
+					map[string]string{"funcName": t.funcName},
+					[]string{"funcName="+t.funcName},
+					fr.image,
+					fr.sourceCodeDir)
+				if err != nil {
+					log.Print(err.Error())
+					t.res <- &Response{Err: err}
+				} else {
+					c.dockerClient.ContainerStart(context.TODO(), body.ID, types.ContainerStartOptions{})
+					t.res <- &Response{Err: nil, Body: nil}
+				}
+			}()
+
 		case t := <- c.tasks:
-			// set unique id
-			t.id = idGenerator
-			idGenerator++
+			log.Printf("%s invoke", t.funcName)
 			fState, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == false {
-				log.Print("Cold Function Request")
-				c.funcStateMap[t.funcName] = cold
-				c.containerMap[t.funcName] = make([]containerMeta, 0)
-				c.subTasks[t.funcName] = make(chan *task, 100)
-				fState = cold
+				t.res <- &Response{Err: errors.New("Not init function")}
+				continue
 			}
-
-			if  fState == running {
+			if fState == running {
 				c.subTasks[t.funcName] <- t
 			} else if fState == cold {
-				log.Print("create container")
-				c.funcStateMap[t.funcName] = running
-				c.subTasks[t.funcName] <- t
-				go func ()  {
-					body, err := c.createContainer(
-						context.TODO(),
-						map[string]string{"id": string(idGenerator)},
-						[]string{"funcName="+t.funcName, "envID="+string(idGenerator)},
-						c.convertFuncNameToImageName(t.funcName))
-					if err != nil {
-						log.Print(err.Error())
-					} else {
-						c.dockerClient.ContainerStart(context.TODO(), body.ID, types.ContainerStartOptions{})
-					}
-
-				}()
+				// TODO
+				t.res <- &Response{Err: errors.New("Todo Cold")}
 			}
 		case ccr := <- c.containerRegistration:
-			log.Printf("%s start working", ccr.id)
+			log.Printf("%s start working for %s", ccr.id, ccr.funcName)
 			ccr.inTasks = c.subTasks[ccr.funcName]
-			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], *ccr)
+			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], ccr)
 			go ccr.workForIn()
 			go ccr.workForOut()
 		case <- ctx.Done():
+			log.Print("Controller Exits")
 			return
 		}
 	}

@@ -33,15 +33,16 @@ type containerConn struct {
 }
 func (cc *containerConn) poll(t time.Time) (error) {
 	if err := cc.conn.SetReadDeadline(t); err != nil {
-		return nil
+		return err
 	}
 	n, err := cc.conn.Read(cc.bufCache)
+	log.Printf("conn poll %d", n)
 	if err != nil {
 		return err
 	}
 	cc.buf.Write(cc.bufCache[:n])
 	if err := cc.conn.SetReadDeadline(time.Time{}); err != nil {
-		return nil
+		return err
 	}
 	return nil
 }
@@ -55,6 +56,8 @@ func (cc *containerConn) read() (*interactionPackage, error) {
 			p := cc.buf.Next(16)
 			cc.headerCache.id = binary.BigEndian.Uint64(p[:8])
 			cc.headerCache.length = binary.BigEndian.Uint64(p[8:])
+
+			log.Printf("header: %d %d", cc.headerCache.id, cc.headerCache.length)
 			cc.state = waittingBody
 		}
 	}
@@ -62,6 +65,7 @@ func (cc *containerConn) read() (*interactionPackage, error) {
 		if uint64(cc.buf.Len()) >= cc.headerCache.length {
 			p := cc.buf.Next(int(cc.headerCache.length))
 			log.Printf("body: %s", string(p))
+			cc.state = waittingHeader
 			return &interactionPackage{
 				cc.headerCache,
 				p,
@@ -73,7 +77,13 @@ func (cc *containerConn) read() (*interactionPackage, error) {
 }
 
 func (cc *containerConn) write(ib *interactionPackage) error {
-	_, err := cc.conn.Write(ib.body)
+	header := make([]byte, 16)
+	binary.BigEndian.PutUint64(header, ib.id)
+	binary.BigEndian.PutUint64(header[8:], ib.length)
+	n, err := cc.conn.Write(header)
+	log.Printf("write ib %s %d", ib.id, n)
+	n, err = cc.conn.Write(ib.body)
+	log.Printf("write ib %s %d", ib.id, n)
 	return err
 }
 
