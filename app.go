@@ -39,16 +39,17 @@ func main() {
 		var req callRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		resCh := make(chan []byte)
+		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
 		client.Invoke(ctx, req.funcName, req.args, resCh)
 		select {
 		case res := <- resCh:
-			if res == nil {
-				http.Error(w, "", http.StatusBadRequest)
+			if res.Err != nil {
+				http.Error(w, res.Err.Error(), http.StatusBadRequest)
 			}
 			fmt.Fprintln(w, res)
 		case msg := <- ctx.Done():
@@ -59,16 +60,17 @@ func main() {
 		var req initRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		resCh := make(chan []byte)
+		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
 		client.Init(ctx, req.funcName, req.image, req.codeURI, resCh)
 		select {
 		case res := <- resCh:
-			if res == nil {
-				http.Error(w, "", http.StatusBadRequest)
+			if res.Err != nil {
+				http.Error(w, res.Err.Error(), http.StatusBadRequest)
 			}
 			fmt.Fprintln(w, res)
 		case msg := <- ctx.Done():

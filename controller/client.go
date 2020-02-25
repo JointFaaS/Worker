@@ -9,10 +9,16 @@ import (
 const (
 	socketPath string = "/var/run/worker.sock"
 )
+
+// Response is used in async ret
+type Response struct {
+	Err error
+	Body *[]byte
+}
 type task struct {
 	funcName string
 	args string
-	res chan []byte
+	res chan *Response
 	id uint64
 	ctx context.Context
 }
@@ -21,7 +27,7 @@ type initTask struct {
 	funcName string
 	image string
 	codeURI string
-	res chan []byte
+	res chan *Response
 	ctx context.Context
 }
 

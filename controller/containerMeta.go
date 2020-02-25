@@ -37,7 +37,7 @@ func (c *containerMeta) workForIn() {
 				panic(err)
 			}
 		case r := <- c.outResponses:
-			c.waitedTasks[r.id].res <- r.res
+			c.waitedTasks[r.id].res <- &Response{Err: nil, Body: &r.res}
 			delete(c.waitedTasks, r.id)
 		}
 	}

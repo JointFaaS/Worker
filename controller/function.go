@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"log"
+
 	"github.com/docker/docker/api/types"
 )
 
@@ -19,12 +20,12 @@ const (
 )
 
 // Invoke pass a function request to backend
-func (c *Client) Invoke(ctx context.Context, name string, args string, res chan []byte)  {
+func (c *Client) Invoke(ctx context.Context, name string, args string, res chan *Response)  {
 	c.tasks <- &task{funcName: name, args: args, res: res, ctx: ctx}
 }
 
 // Init creates a congtainer env
-func (c *Client) Init(ctx context.Context, name string, image string, codeURI string, res chan []byte) {
+func (c *Client) Init(ctx context.Context, name string, image string, codeURI string, res chan *Response) {
 	c.initTasks <- &initTask{funcName: name, image: image, codeURI: codeURI, res: res, ctx: ctx}
 }
 
@@ -42,7 +43,7 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			log.Print("Init Function Request")
 			fr, err := newFuncResource(t.funcName, t.image, t.codeURI)
 			if err != nil {
-				t.res <- []byte(err.Error())
+				t.res <- &Response{Err: err, Body: nil}
 				continue
 			}
 			c.funcResourceMap[t.funcName] = fr
@@ -62,7 +63,7 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 					t.res <- nil
 				} else {
 					c.dockerClient.ContainerStart(context.TODO(), body.ID, types.ContainerStartOptions{})
-					t.res <- []byte("init successfully")
+					t.res <- &Response{Err: nil, Body: nil}
 				}
 			}()
 
