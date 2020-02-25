@@ -17,6 +17,14 @@ type task struct {
 	ctx context.Context
 }
 
+type initTask struct {
+	funcName string
+	image string
+	codeURI string
+	res chan []byte
+	ctx context.Context
+}
+
 // Client is the API client that performs all operations
 // against a Worker.
 type Client struct {
@@ -26,9 +34,13 @@ type Client struct {
 
 	tasks chan *task
 
+	initTasks chan *initTask
+
 	containerRegistration chan *containerMeta
 
 	funcStateMap map[string]funcState
+
+	funcResourceMap map[string]*funcResource
 
 	containerMap map[string][]containerMeta
 
@@ -65,6 +77,7 @@ func NewClient(config *Config) (*Client, error){
 	c := &Client{
 		dockerClient: dockerClient,
 		tasks: make(chan * task, 256),
+		initTasks: make(chan *initTask, 8),
 		containerRegistration: make(chan *containerMeta),
 		unixListener: unixListener,
 		funcStateMap: make(map[string]funcState),

@@ -30,7 +30,7 @@ func (c *Client) clearContainer(ctx context.Context) (error) {
 	return nil
 }
 
-func (c *Client) createContainer(ctx context.Context, labels map[string]string, envs []string, image string) (container.ContainerCreateCreatedBody, error) {
+func (c *Client) createContainer(ctx context.Context, labels map[string]string, envs []string, image string, codeDir string) (container.ContainerCreateCreatedBody, error) {
 	body, err := c.dockerClient.ContainerCreate(ctx, 
 		&container.Config{
 			Image: image,
@@ -40,6 +40,7 @@ func (c *Client) createContainer(ctx context.Context, labels map[string]string, 
 		&container.HostConfig{
 			Binds: []string{
 				c.config.SocketPath + ":/var/run/worker.sock",
+				codeDir + ":/tmp/code",
 			},
 			NetworkMode: "none",
 		},
