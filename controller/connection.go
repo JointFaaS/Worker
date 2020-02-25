@@ -33,7 +33,7 @@ type containerConn struct {
 }
 func (cc *containerConn) poll(t time.Time) (error) {
 	if err := cc.conn.SetReadDeadline(t); err != nil {
-		return nil
+		return err
 	}
 	n, err := cc.conn.Read(cc.bufCache)
 	if err != nil {
@@ -41,7 +41,7 @@ func (cc *containerConn) poll(t time.Time) (error) {
 	}
 	cc.buf.Write(cc.bufCache[:n])
 	if err := cc.conn.SetReadDeadline(time.Time{}); err != nil {
-		return nil
+		return err
 	}
 	return nil
 }
@@ -62,6 +62,9 @@ func (cc *containerConn) read() (*interactionPackage, error) {
 		if uint64(cc.buf.Len()) >= cc.headerCache.length {
 			p := cc.buf.Next(int(cc.headerCache.length))
 			log.Printf("body: %s", string(p))
+			cc.state = waittingHeader
+			cc.headerCache.length = 0
+			cc.headerCache.id = 0
 			return &interactionPackage{
 				cc.headerCache,
 				p,
