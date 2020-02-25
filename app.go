@@ -56,6 +56,7 @@ func main() {
 			fmt.Fprintln(w, msg)
 		}
 	}
+
 	initHandler := func(w http.ResponseWriter, r *http.Request) {
 		var req InitRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)

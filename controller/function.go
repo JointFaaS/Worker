@@ -70,13 +70,14 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			log.Printf("%s invoke", t.funcName)
 			fState, isPresent := c.funcStateMap[t.funcName]
 			if isPresent == false {
-				t.res <- nil
+				t.res <- &Response{Err: errors.New("Not init function")}
+				continue
 			}
 			if fState == running {
 				c.subTasks[t.funcName] <- t
 			} else if fState == cold {
 				// TODO
-				t.res <- nil
+				t.res <- &Response{Err: errors.New("Todo Cold")}
 			}
 		case ccr := <- c.containerRegistration:
 			log.Printf("%s start working for %s", ccr.id, ccr.funcName)
