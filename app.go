@@ -1,25 +1,30 @@
 package main
 
 import (
-    "fmt"
-	"os"
-	"time"
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"encoding/json"
+	"os"
+	"io/ioutil"
+	"path"
+	"time"
+
+	"gopkg.in/yaml.v2"
 	"github.com/JointFaas/Worker/controller"
 )
 
-type CallRequestBody struct {
-	FuncName string
-	Args string
+type callRequestBody struct {
+	FuncName string `json:"funcName"`
+	Args string `json:"args"`
 }
 
-type InitRequestBody struct {
-	FuncName string
-	Image string
-	CodeURI string
+type initRequestBody struct {
+	FuncName string `json:"funcName"`
+	Image string	`json:"image"`
+	CodeURI string	`json:"codeURI"`
 }
 
 func logInit() {
@@ -27,16 +32,41 @@ func logInit() {
     log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
 }
 
-func main() {
-	logInit()
-	client, err := controller.NewClient(&controller.Config{
-		SocketPath: os.Getenv("WORKER_SOCKET_PATH"),
-	})
+type config struct {
+	WorkerSocketPath string `yaml:"workerSocketPath"`
+	ListenPort string `yaml:"listenPort"`
+	ManagerAddress string `yaml:"managerAddress"`
+}
+
+type registrationBody struct {
+	WorkerPort string `yaml:"workerPort"`
+	WorkerID string `yaml:"workerID"`
+}
+
+func registerMeToManager(managerAddr string, body registrationBody) {
+	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		panic(err)
 	}
+	go func() {
+		for	{
+			resp, err := http.Post("http://" + managerAddr + "/register", "application/json;charset=UTF-8", bytes.NewReader(jsonBody))
+			if err != nil {
+				log.Print("register fail: ", err.Error())
+			} else if resp.StatusCode != http.StatusOK {
+				log.Print("register fail:", resp.Body)
+			} else {
+				log.Print("register successful:", resp.Body)
+			}
+			time.Sleep(time.Second * 10)
+		}
+	}()
+}
+
+
+func setHandler(client *controller.Client) {
 	callHandler := func (w http.ResponseWriter, r *http.Request) {
-		var req CallRequestBody
+		var req callRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -58,7 +88,7 @@ func main() {
 	}
 
 	initHandler := func(w http.ResponseWriter, r *http.Request) {
-		var req InitRequestBody
+		var req initRequestBody
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -78,9 +108,37 @@ func main() {
 			fmt.Fprintln(w, msg)
 		}
 	}
-
 	http.HandleFunc("/call", callHandler)
 	http.HandleFunc("/init", initHandler)
+}
+
+
+func main() {
+	logInit()
+	var config config
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	cfgFile, err := ioutil.ReadFile(path.Join(home, "/.jfWorker/config.yml"))
+	if err != nil {
+		panic(err)
+	}
+
+	err = yaml.UnmarshalStrict(cfgFile, &config)
+	if err != nil {
+		panic(err)
+	}
+	client, err := controller.NewClient(&controller.Config{
+		SocketPath: config.WorkerSocketPath,
+	})
+	if err != nil {
+		panic(err)
+	}
+	setHandler(client)
+	registerMeToManager(config.ManagerAddress, registrationBody{WorkerID: "", WorkerPort: config.ListenPort})
+
 	log.Print("start listening")
-    log.Fatal(http.ListenAndServe("0.0.0.0:8000", nil))
+    log.Fatal(http.ListenAndServe("0.0.0.0:" + config.ListenPort, nil))
 }
