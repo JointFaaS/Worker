@@ -16,11 +16,6 @@ import (
 	"github.com/JointFaas/Worker/controller"
 )
 
-type callRequestBody struct {
-	FuncName string `json:"funcName"`
-	Args string `json:"args"`
-}
-
 type initRequestBody struct {
 	FuncName string `json:"funcName"`
 	Image string	`json:"image"`
@@ -39,8 +34,8 @@ type config struct {
 }
 
 type registrationBody struct {
-	WorkerPort string `yaml:"workerPort"`
-	WorkerID string `yaml:"workerID"`
+	WorkerPort string `json:"workerPort"`
+	WorkerID string `json:"workerID"`
 }
 
 func registerMeToManager(managerAddr string, body registrationBody) {
@@ -66,16 +61,21 @@ func registerMeToManager(managerAddr string, body registrationBody) {
 
 func setHandler(client *controller.Client) {
 	callHandler := func (w http.ResponseWriter, r *http.Request) {
-		var req callRequestBody
-		err := json.NewDecoder(r.Body).Decode(&req)
+		if r.Method != http.MethodPost {
+			http.Error(w, "Not support method", http.StatusBadRequest)
+			return
+		}
+		r.ParseForm()
+		funcName := r.FormValue("funcName")
+		args, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Fail to read Payload", http.StatusBadRequest)
 			return
 		}
 		resCh := make(chan *controller.Response)
 		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
 		
-		client.Invoke(ctx, req.FuncName, []byte(req.Args), resCh)
+		client.Invoke(ctx, funcName, args, resCh)
 		select {
 		case res := <- resCh:
 			if res.Err != nil {
