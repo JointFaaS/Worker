@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"archive/zip"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,11 +16,6 @@ type funcResource struct {
 }
 
 func newFuncResource(funcName string, image string, sourceCodeURL string) (*funcResource, error) {
-	fr := funcResource{
-		funcName: funcName,
-		image: image,
-		sourceCodeURL: sourceCodeURL,
-	}
 	resp, err := http.Get(sourceCodeURL)
 	if err != nil {
 		return nil, err
@@ -30,46 +24,16 @@ func newFuncResource(funcName string, image string, sourceCodeURL string) (*func
 	if err != nil {
 		return nil, err
 	}
-	z, err := os.Create(path.Join(dir, "code.zip"))
+	z, err := os.Create(path.Join(dir, "source"))
 	if err != nil {
 		return nil, err
 	}
 	io.Copy(z, resp.Body)
-	fr.sourceCodeDir = dir
-	err = deCompress(path.Join(dir, "code.zip"), dir)
-	if err != nil {
-		return nil, err
+	fr := funcResource{
+		funcName: funcName,
+		image: image,
+		sourceCodeURL: sourceCodeURL,
+		sourceCodeDir: dir,
 	}
 	return &fr, nil
-}
-
-func deCompress(zipFile, dest string) error {
-	reader, err := zip.OpenReader(zipFile)
-	if err != nil {
-		return err
-	}
-
-	defer reader.Close()
-	for _, innerFile := range reader.File {
-        info := innerFile.FileInfo()
-        if info.IsDir() {
-            err = os.MkdirAll(innerFile.Name, os.ModePerm)
-            if err != nil {
-                return err
-            }
-            continue
-        }
-        srcFile, err := innerFile.Open()
-        if err != nil {
-            return err
-        }
-        defer srcFile.Close()
-        newFile, err := os.Create(path.Join(dest, innerFile.Name))
-        if err != nil {
-			return err
-        }
-        io.Copy(newFile, srcFile)
-        newFile.Close()
-    }
-    return nil
 }
