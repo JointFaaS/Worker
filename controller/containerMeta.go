@@ -37,6 +37,7 @@ func (c *containerMeta) workForIn() {
 			taskID++
 			if err := c.conn.write(ib); err != nil {
 				// TODO
+				c.inTasks <- t
 				panic(err)
 			}
 		case r := <- c.outResponses:
@@ -55,7 +56,10 @@ func (c *containerMeta) workForOut() {
 		}
 		if p == nil {
 			// poll
-			c.conn.poll(time.Now().Add(time.Second))
+			err := c.conn.poll(time.Now().Add(time.Second))
+			if err != nil {
+				panic(err)
+			}
 		} else {
 			log.Printf("%ul response", p.id)
 			c.outResponses <- &response{

@@ -38,6 +38,13 @@ func (cc *containerConn) poll(t time.Time) (error) {
 	n, err := cc.conn.Read(cc.bufCache)
 	log.Printf("conn poll %d", n)
 	if err != nil {
+		neterr, ok := err.(net.Error)
+		if ok == false {
+			return err
+		}
+		if neterr.Timeout() {
+			return nil
+		}
 		return err
 	}
 	cc.buf.Write(cc.bufCache[:n])
