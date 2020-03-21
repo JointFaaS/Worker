@@ -54,7 +54,7 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 				body, err := c.createContainer(
 					context.TODO(),
 					map[string]string{"funcName": t.funcName},
-					[]string{"funcName="+t.funcName},
+					c.config.ContainerEnvVariables,
 					fr.image,
 					fr.sourceCodeDir)
 				if err != nil {

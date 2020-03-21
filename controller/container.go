@@ -42,7 +42,6 @@ func (c *Client) createContainer(ctx context.Context, labels map[string]string, 
 				c.config.SocketPath + ":/var/run/worker.sock",
 				codeDir + ":/tmp/code",
 			},
-			NetworkMode: "none",
 		},
 		nil, "")
 	return body, err

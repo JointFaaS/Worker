@@ -62,6 +62,8 @@ type Client struct {
 // It supports adjusting the resource limits 
 type Config struct {
 	SocketPath string
+
+	ContainerEnvVariables []string
 }
 
 // NewClient initializes a new API client

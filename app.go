@@ -28,9 +28,11 @@ func logInit() {
 }
 
 type config struct {
+	WorkerID string `yaml:"workerID"`
 	WorkerSocketPath string `yaml:"workerSocketPath"`
 	ListenPort string `yaml:"listenPort"`
 	ManagerAddress string `yaml:"managerAddress"`
+	ContainerEnvVariables []string `yaml:"containerEnvVariables"`
 }
 
 type registrationBody struct {
@@ -115,7 +117,7 @@ func setHandler(client *controller.Client) {
 
 func main() {
 	logInit()
-	var config config
+	var cfg config
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -126,19 +128,20 @@ func main() {
 		panic(err)
 	}
 
-	err = yaml.UnmarshalStrict(cfgFile, &config)
+	err = yaml.UnmarshalStrict(cfgFile, &cfg)
 	if err != nil {
 		panic(err)
 	}
 	client, err := controller.NewClient(&controller.Config{
-		SocketPath: config.WorkerSocketPath,
+		SocketPath: cfg.WorkerSocketPath,
+		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
 	if err != nil {
 		panic(err)
 	}
 	setHandler(client)
-	registerMeToManager(config.ManagerAddress, registrationBody{WorkerID: "", WorkerPort: config.ListenPort})
+	go log.Fatal(http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil))
+	registerMeToManager(cfg.ManagerAddress, registrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
 
 	log.Print("start listening")
-    log.Fatal(http.ListenAndServe("0.0.0.0:" + config.ListenPort, nil))
 }

@@ -88,9 +88,9 @@ func (cc *containerConn) write(ib *interactionPackage) error {
 	binary.BigEndian.PutUint64(header, ib.id)
 	binary.BigEndian.PutUint64(header[8:], ib.length)
 	n, err := cc.conn.Write(header)
-	log.Printf("write ib %s %d", ib.id, n)
+	log.Printf("write ib %d %d", ib.id, n)
 	n, err = cc.conn.Write(ib.body)
-	log.Printf("write ib %s %d", ib.id, n)
+	log.Printf("write ib %d %d", ib.id, n)
 	return err
 }
 
