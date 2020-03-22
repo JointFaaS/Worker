@@ -83,8 +83,8 @@ func (c *Client) workForExternalRequest(ctx context.Context) {
 			log.Printf("%s start working for %s", ccr.id, ccr.funcName)
 			ccr.inTasks = c.subTasks[ccr.funcName]
 			c.containerMap[ccr.funcName] = append(c.containerMap[ccr.funcName], ccr)
-			go ccr.workForIn()
-			go ccr.workForOut()
+			go ccr.workForInandOut()
+			go ccr.workForConnectionPoll()
 		case <- ctx.Done():
 			log.Print("Controller Exits")
 			return

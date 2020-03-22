@@ -12,6 +12,7 @@ type containerMeta struct {
 	waitedTasks map[uint64]*task
 	inTasks chan *task
 	outResponses chan *response
+	concurrencyLimit int
 }
 
 type response struct {
@@ -19,35 +20,43 @@ type response struct {
 	res []byte
 }
 
-func (c *containerMeta) workForIn() {
+func (c *containerMeta) workForInandOut() {
 	var taskID uint64
 	taskID = 0
 	for {
-		select {
-		case t := <- c.inTasks:
-			log.Printf("%s get inTask", c.id)
-			c.waitedTasks[taskID] = t
-			ib := &interactionPackage{
-				interactionHeader{
-					taskID,
-					uint64(len(t.args)),
-				},
-				t.args,
+		if len(c.waitedTasks) < c.concurrencyLimit {
+			select {
+			case t := <- c.inTasks:
+				log.Printf("%s get inTask", c.id)
+				c.waitedTasks[taskID] = t
+				ib := &interactionPackage{
+					interactionHeader{
+						taskID,
+						uint64(len(t.args)),
+					},
+					t.args,
+				}
+				taskID++
+				if err := c.conn.write(ib); err != nil {
+					// TODO
+					c.inTasks <- t
+					panic(err)
+				}
+			case r := <- c.outResponses:
+				c.waitedTasks[r.id].res <- &Response{Err: nil, Body: &r.res}
+				delete(c.waitedTasks, r.id)
 			}
-			taskID++
-			if err := c.conn.write(ib); err != nil {
-				// TODO
-				c.inTasks <- t
-				panic(err)
+		}else {
+			select {
+			case r := <- c.outResponses:
+				c.waitedTasks[r.id].res <- &Response{Err: nil, Body: &r.res}
+				delete(c.waitedTasks, r.id)
 			}
-		case r := <- c.outResponses:
-			c.waitedTasks[r.id].res <- &Response{Err: nil, Body: &r.res}
-			delete(c.waitedTasks, r.id)
 		}
 	}
 }
 
-func (c *containerMeta) workForOut() {
+func (c *containerMeta) workForConnectionPoll() {
 	for {
 		p, err := c.conn.read()
 		if err != nil {
@@ -77,5 +86,7 @@ func newContainerMeta(id string, funcName string, cc *containerConn) *containerM
 		conn: cc,
 		waitedTasks: make(map[uint64]*task),
 		outResponses: make(chan *response),
+		// TODO
+		concurrencyLimit: 1,
 	}
 }
