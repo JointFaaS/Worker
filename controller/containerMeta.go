@@ -1,8 +1,9 @@
 package controller
 
 import (
-	"time"
+	"context"
 	"log"
+	"time"
 )
 
 type containerMeta struct {
@@ -13,6 +14,8 @@ type containerMeta struct {
 	inTasks chan *task
 	outResponses chan *response
 	concurrencyLimit int
+	ctx context.Context
+	cancel context.CancelFunc
 }
 
 type response struct {
@@ -60,14 +63,15 @@ func (c *containerMeta) workForConnectionPoll() {
 	for {
 		p, err := c.conn.read()
 		if err != nil {
-			// TODO
-			panic(err)
+			c.cancel()
+			return
 		}
 		if p == nil {
 			// poll
 			err := c.conn.poll(time.Now().Add(time.Second))
 			if err != nil {
-				panic(err)
+				c.cancel()
+				return
 			}
 		} else {
 			log.Printf("%ul response", p.id)

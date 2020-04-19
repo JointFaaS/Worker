@@ -48,17 +48,21 @@ func (c *Client) createContainer(ctx context.Context, labels map[string]string, 
 }
 
 func (c *Client) workForContainerRegistration() {
+	c.wg.Add(1)
+	defer c.wg.Done()
 	for {
 		unixConn, err := c.unixListener.AcceptUnix()
 		if err != nil {
 			continue
 		}
-		log.Printf("new connection")
+		log.Printf("new connection from %s", unixConn.RemoteAddr().String())
 		go func ()  {
-			err := c.registerHelper(unixConn)
+			cm, err := c.convertConnToContainerMeta(unixConn)
 			if err != nil {
 				log.Print(err.Error())
+				return
 			}
+			c.containerRegistration <- cm
 		}() 
 	}
 }
@@ -68,24 +72,27 @@ type registerBody struct {
 	EnvID string `json:"envID"`
 }
 
-func (c *Client) registerHelper(unixConn *net.UnixConn) error {
+func (c *Client) convertConnToContainerMeta(unixConn *net.UnixConn) (*containerMeta, error) {
 	cc := newContainerConn(unixConn)
 	for {
 		if err := cc.poll(time.Now().Add(time.Second)); err != nil {
-			return err
+			return nil, err
 		}
 		ib, err := cc.read()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if ib != nil {
 			var regBody registerBody
 			err := json.NewDecoder(bytes.NewReader(ib.body)).Decode(&regBody)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			c.containerRegistration <- newContainerMeta(regBody.EnvID, regBody.FuncName, cc)
-			return nil
+			containerID, isPresent := c.containerIDMap.Load(regBody.EnvID)
+			if isPresent == false {
+				panic("wtf?")
+			}
+			return newContainerMeta(containerID.(string), regBody.FuncName, cc), nil
 		}
 	}
 }

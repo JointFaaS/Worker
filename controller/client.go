@@ -2,32 +2,34 @@ package controller
 
 import (
 	"context"
-	"runtime"
 	"net"
+	"sync"
+
 	dc "github.com/docker/docker/client"
 )
+
 const (
 	socketPath string = "/var/run/worker.sock"
 )
 
 // Response is used in async ret
 type Response struct {
-	Err error
+	Err  error
 	Body *[]byte
 }
 type task struct {
 	funcName string
-	args []byte
-	res chan *Response
-	ctx context.Context
+	args     []byte
+	res      chan *Response
+	ctx      context.Context
 }
 
 type initTask struct {
 	funcName string
-	image string
-	codeURI string
-	res chan *Response
-	ctx context.Context
+	image    string
+	codeURI  string
+	res      chan *Response
+	ctx      context.Context
 }
 
 // Client is the API client that performs all operations
@@ -47,7 +49,9 @@ type Client struct {
 
 	funcResourceMap map[string]*funcResource
 
-	containerMap map[string][]*containerMeta
+	funcContainerMap map[string][]*containerMeta
+
+	containerIDMap *sync.Map
 
 	subTasks map[string]chan *task
 
@@ -56,10 +60,12 @@ type Client struct {
 	cancel context.CancelFunc
 
 	config *Config
+
+	wg *sync.WaitGroup
 }
 
 // Config is used to initialize controller client
-// It supports adjusting the resource limits 
+// It supports adjusting the resource limits
 type Config struct {
 	SocketPath string
 
@@ -67,7 +73,7 @@ type Config struct {
 }
 
 // NewClient initializes a new API client
-func NewClient(config *Config) (*Client, error){
+func NewClient(config *Config) (*Client, error) {
 	unixAddr, err := net.ResolveUnixAddr("unix", config.SocketPath)
 	if err != nil {
 		return nil, err
@@ -82,27 +88,30 @@ func NewClient(config *Config) (*Client, error){
 	}
 	ctx, cancel := context.WithCancel(context.TODO())
 	c := &Client{
-		dockerClient: dockerClient,
-		tasks: make(chan * task, 256),
-		initTasks: make(chan *initTask, 8),
+		dockerClient:          dockerClient,
+		tasks:                 make(chan *task, 256),
+		initTasks:             make(chan *initTask, 8),
 		containerRegistration: make(chan *containerMeta),
-		unixListener: unixListener,
-		funcStateMap: make(map[string]funcState),
-		funcResourceMap: make(map[string]*funcResource),
-		containerMap: make(map[string][]*containerMeta),
-		subTasks: make(map[string]chan *task),
-		ctx: ctx,
-		cancel: cancel,
-		config: config,
+		unixListener:          unixListener,
+		funcStateMap:          make(map[string]funcState),
+		funcResourceMap:       make(map[string]*funcResource),
+		funcContainerMap:      make(map[string][]*containerMeta),
+		containerIDMap: 		new(sync.Map),
+		subTasks:              make(map[string]chan *task),
+		ctx:                   ctx,
+		cancel:                cancel,
+		config:                config,
+		wg:                    new(sync.WaitGroup),
 	}
-	runtime.SetFinalizer(c, clientFinalizer)
-	go c.workForExternalRequest(ctx)
+	go c.workForExternalRequest()
 	go c.workForContainerRegistration()
 	return c, nil
 }
 
-func clientFinalizer(c *Client) {
+// Close stops the client and wait for all the resource release
+func (c *Client) Close() {
 	c.cancel()
 	c.dockerClient.Close()
 	c.unixListener.Close()
+	c.wg.Wait()
 }

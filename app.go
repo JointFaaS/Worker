@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"io/ioutil"
 	"path"
 	"time"
 
-	"gopkg.in/yaml.v2"
 	"github.com/JointFaas/Worker/controller"
+	"gopkg.in/yaml.v2"
 )
 
 type initRequestBody struct {
@@ -35,29 +36,38 @@ type config struct {
 	ContainerEnvVariables []string `yaml:"containerEnvVariables"`
 }
 
-type registrationBody struct {
+type workerRegistrationBody struct {
 	WorkerPort string `json:"workerPort"`
 	WorkerID string `json:"workerID"`
 }
 
-func registerMeToManager(managerAddr string, body registrationBody) {
+type workerRegistrationResponseBody struct {
+	Region          string `json:"region"`
+	JointfaasEnv    string `json:"jointfaasEnv"`
+	AccessKeyID     string `json:"accessKeyID"`
+	AccessKeySecret string `json:"accessKeySecret"`
+	CenterStorage   string `json:"centerStorage"`
+}
+
+func registerMeToManager(managerAddr string, body workerRegistrationBody) (*workerRegistrationResponseBody, error) {
+	time.Sleep(time.Second * 5) // wait for http server initializing
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		for	{
-			resp, err := http.Post("http://" + managerAddr + "/register", "application/json;charset=UTF-8", bytes.NewReader(jsonBody))
-			if err != nil {
-				log.Print("register fail: ", err.Error())
-			} else if resp.StatusCode != http.StatusOK {
-				log.Print("register fail:", resp.Body)
-			} else {
-				log.Print("register successful:", resp.Body)
-			}
-			time.Sleep(time.Second * 10)
-		}
-	}()
+
+	resp, err := http.Post("http://" + managerAddr + "/register", "application/json;charset=UTF-8", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Unavailable Manager")
+	} 
+	var res workerRegistrationResponseBody
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
 
@@ -140,8 +150,7 @@ func main() {
 		panic(err)
 	}
 	setHandler(client)
-	go log.Fatal(http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil))
-	registerMeToManager(cfg.ManagerAddress, registrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
-
+	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
+	log.Fatal(http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil))
 	log.Print("start listening")
 }
