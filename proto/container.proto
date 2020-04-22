@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option go_package = ".;grpc";
+package grpc;
+
+service WorkerContainer {
+    rpc Connect(stream ConnectRequest) returns (stream ConnectReply) {}
+}
+
+message ConnectRequest {
+    oneof Action {
+        RegisterRequest register = 1;
+        InvokeRequest InvokeRequest = 2;
+        InvokeReply InvokeReply = 3;
+    }
+}
+
+message ConnectReply {
+    int32 Code = 1;
+    string Msg = 2;
+}
+
+message InvokeRequest {
+    int64 id = 1;
+    bytes payload = 2;
+}
+
+message InvokeReply {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
+    int64 id = 1;
+    bytes output = 2;
+}
+
+message RegisterRequest {
+    string funcName = 1;
+}

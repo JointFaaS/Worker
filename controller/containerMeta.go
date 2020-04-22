@@ -12,13 +12,13 @@ type containerMeta struct {
 	conn *containerConn
 	waitedTasks map[uint64]*task
 	inTasks chan *task
-	outResponses chan *response
+	outResponses chan *funcExecResponse
 	concurrencyLimit int
 	ctx context.Context
 	cancel context.CancelFunc
 }
 
-type response struct {
+type funcExecResponse struct {
 	id uint64
 	res []byte
 }
@@ -75,7 +75,7 @@ func (c *containerMeta) workForConnectionPoll() {
 			}
 		} else {
 			log.Printf("%ul response", p.id)
-			c.outResponses <- &response{
+			c.outResponses <- &funcExecResponse{
 				id: p.id,
 				res: p.body,
 			}
@@ -89,7 +89,7 @@ func newContainerMeta(id string, funcName string, cc *containerConn) *containerM
 		funcName: funcName,
 		conn: cc,
 		waitedTasks: make(map[uint64]*task),
-		outResponses: make(chan *response),
+		outResponses: make(chan *funcExecResponse),
 		// TODO
 		concurrencyLimit: 1,
 	}

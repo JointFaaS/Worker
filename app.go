@@ -70,7 +70,6 @@ func registerMeToManager(managerAddr string, body workerRegistrationBody) (*work
 	return &res, nil
 }
 
-
 func setHandler(client *controller.Client) {
 	callHandler := func (w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

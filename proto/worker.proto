@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option go_package = ".;grpc";
+package grpc;
+
+service Worker {
+    rpc Invoke(InvokeRequest) returns (InvokeReply) {}
+    rpc InitFunction(InitFunctionRequest) returns (InitFunctionReply) {}
+    rpc Metrics(MetricsRequest) returns (MetricsReply) {}
+}
+
+message InvokeRequest {
+    string name = 1;
+    bytes payload = 2;
+}
+
+message InvokeReply {
+    enum Code {
+        OK = 0;
+        NO_SUCH_FUNCTION = 1;
+        RUNTIME_ERROR = 2;
+    }
+    bytes output = 2;
+}
+
+message InitFunctionRequest {
+	string funcName = 1;
+	string image = 2;
+	string codeURI = 3;
+}
+
+message InitFunctionReply {
+    enum Code {
+        OK = 0;
+        UPDATE_OK = 1;
+        ERROR = 2;
+    }
+}
+
+message MetricsRequest {
+    
+}
+
+message MetricsReply {
+    // TODO
+}
