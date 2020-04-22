@@ -7,6 +7,7 @@ service Container {
     rpc Invoke(InvokeRequest) returns (InvokeResponse) {}
     rpc SetEnvs(SetEnvsRequest) returns (SetEnvsResponse) {}
     rpc LoadCode(LoadCodeRequest) returns (LoadCodeResponse) {}
+    rpc Stop(StopRequest) returns (StopResponse) {}
 }
 
 message InvokeRequest {
@@ -21,6 +22,7 @@ message InvokeResponse {
         FUNC_MISMATCH = 2;
         RUNTIME_ERROR = 3;
     }
+    Code code = 1;
     bytes output = 2;
 }
 
@@ -33,6 +35,7 @@ message SetEnvsResponse {
         OK = 0;
         INVALID_ENV = 1;
     }
+    Code code = 1;
 }
 
 message LoadCodeRequest {
@@ -45,4 +48,15 @@ message LoadCodeResponse {
         OK = 0;
         INVALID_ENV = 1;
     }
+    Code code = 1;
+}
+
+message StopRequest {
+}
+
+message StopResponse {
+    enum Code {
+        OK = 0;
+    }
+    Code code = 1;
 }

@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	client, err := controller.NewClient(&controller.Config{
+	client, err := controller.NewClient(controller.Config{
 		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
 	if err != nil {

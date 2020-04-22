@@ -4,10 +4,11 @@ option go_package = ".;worker";
 package worker;
 
 service Worker {
-    rpc Invoke(InvokeRequest) returns (InvokeReply) {}
-    rpc Register(RegisterRequest) returns (RegisterReply) {}
-    rpc InitFunction(InitFunctionRequest) returns (InitFunctionReply) {}
-    rpc Metrics(MetricsRequest) returns (MetricsReply) {}
+    rpc Invoke(InvokeRequest) returns (InvokeResponse) {}
+    rpc Register(RegisterRequest) returns (RegisterResponse) {}
+    rpc Reset(ResetRequest) returns (ResetResponse) {}
+    rpc InitFunction(InitFunctionRequest) returns (InitFunctionResponse) {}
+    rpc Metrics(MetricsRequest) returns (MetricsResponse) {}
 }
 
 message InvokeRequest {
@@ -15,47 +16,68 @@ message InvokeRequest {
     bytes payload = 2;
 }
 
-message InvokeReply {
+message InvokeResponse {
     enum Code {
         OK = 0;
         NO_SUCH_FUNCTION = 1;
         RUNTIME_ERROR = 2;
+        RETRY = 3;
     }
+    Code code = 1;
     bytes output = 2;
 }
 
 message RegisterRequest {
     string addr = 1;
-    string env = 2;
-    int64 memory = 3;
-    int64 disk = 4;
+    string runtime = 2;
+    string funcName = 3;
+    int64 memory = 4;
+    int64 disk = 5;
 }
 
-message RegisterReply {
+message RegisterResponse {
     enum Code {
         OK = 0;
         ERROR = 1;
     }
+    Code code = 1;
+    string msg = 2;
+}
+
+message ResetRequest {
+    string addr = 1;
+}
+
+message ResetResponse {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
+    Code code = 1;
 }
 
 message InitFunctionRequest {
 	string funcName = 1;
-	string image = 2;
-	string codeURI = 3;
+    string image = 2;
+    string runtime = 3;
+    string codeURI = 4;
+    int64 timeout = 5;
+    int64 memorySize = 6;
 }
 
-message InitFunctionReply {
+message InitFunctionResponse {
     enum Code {
         OK = 0;
-        UPDATE_OK = 1;
-        ERROR = 2;
+        ERROR = 1;
     }
+    Code code = 1;
+    string msg = 2;
 }
 
 message MetricsRequest {
     
 }
 
-message MetricsReply {
+message MetricsResponse {
     // TODO
 }
