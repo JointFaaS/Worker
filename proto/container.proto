@@ -1,39 +1,48 @@
 syntax = "proto3";
 
-option go_package = ".;grpc";
-package grpc;
+option go_package = ".;container";
+package container;
 
-service WorkerContainer {
-    rpc Connect(stream ConnectRequest) returns (stream ConnectReply) {}
-}
-
-message ConnectRequest {
-    oneof Action {
-        RegisterRequest register = 1;
-        InvokeRequest InvokeRequest = 2;
-        InvokeReply InvokeReply = 3;
-    }
-}
-
-message ConnectReply {
-    int32 Code = 1;
-    string Msg = 2;
+service Container {
+    rpc Invoke(InvokeRequest) returns (InvokeResponse) {}
+    rpc SetEnvs(SetEnvsRequest) returns (SetEnvsResponse) {}
+    rpc LoadCode(LoadCodeRequest) returns (LoadCodeResponse) {}
 }
 
 message InvokeRequest {
-    int64 id = 1;
+    string funcName = 1;
     bytes payload = 2;
 }
 
-message InvokeReply {
+message InvokeResponse {
     enum Code {
         OK = 0;
-        ERROR = 1;
+        NOT_READY = 1;
+        FUNC_MISMATCH = 2;
+        RUNTIME_ERROR = 3;
     }
-    int64 id = 1;
     bytes output = 2;
 }
 
-message RegisterRequest {
+message SetEnvsRequest {
+    repeated string env = 1;
+}
+
+message SetEnvsResponse {
+    enum Code {
+        OK = 0;
+        INVALID_ENV = 1;
+    }
+}
+
+message LoadCodeRequest {
     string funcName = 1;
+    string url = 2;
+}
+
+message LoadCodeResponse {
+    enum Code {
+        OK = 0;
+        INVALID_ENV = 1;
+    }
 }

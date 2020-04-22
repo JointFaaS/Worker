@@ -2,18 +2,19 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path"
 	"time"
 
-	"github.com/JointFaas/Worker/controller"
+	"github.com/JointFaaS/Worker/controller"
+	wpb "github.com/JointFaaS/Worker/pb/worker"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,7 +26,7 @@ type initRequestBody struct {
 
 func logInit() {
 	log.SetPrefix("TRACE: ")
-    log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
 }
 
 type config struct {
@@ -70,60 +71,6 @@ func registerMeToManager(managerAddr string, body workerRegistrationBody) (*work
 	return &res, nil
 }
 
-func setHandler(client *controller.Client) {
-	callHandler := func (w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Not support method", http.StatusBadRequest)
-			return
-		}
-		r.ParseForm()
-		funcName := r.FormValue("funcName")
-		args, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Fail to read Payload", http.StatusBadRequest)
-			return
-		}
-		resCh := make(chan *controller.Response)
-		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
-		
-		client.Invoke(ctx, funcName, args, resCh)
-		select {
-		case res := <- resCh:
-			if res.Err != nil {
-				http.Error(w, res.Err.Error(), http.StatusBadRequest)
-			}
-			w.Write(*res.Body)
-		case msg := <- ctx.Done():
-			fmt.Fprintln(w, msg)
-		}
-	}
-
-	initHandler := func(w http.ResponseWriter, r *http.Request) {
-		var req initRequestBody
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		resCh := make(chan *controller.Response)
-		ctx, _ := context.WithTimeout(context.Background(), time.Second * 300)
-		
-		client.Init(ctx, req.FuncName, req.Image, req.CodeURI, resCh)
-		select {
-		case res := <- resCh:
-			if res.Err != nil {
-				http.Error(w, res.Err.Error(), http.StatusBadRequest)
-			}
-			fmt.Fprintln(w, res)
-		case msg := <- ctx.Done():
-			fmt.Fprintln(w, msg)
-		}
-	}
-	http.HandleFunc("/call", callHandler)
-	http.HandleFunc("/init", initHandler)
-}
-
-
 func main() {
 	logInit()
 	var cfg config
@@ -142,14 +89,21 @@ func main() {
 		panic(err)
 	}
 	client, err := controller.NewClient(&controller.Config{
-		SocketPath: cfg.WorkerSocketPath,
 		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
 	if err != nil {
 		panic(err)
 	}
-	setHandler(client)
+	lis, err := net.Listen("tcp", cfg.ListenPort)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	s := grpc.NewServer()
+	wpb.RegisterWorkerServer(s, client)
+	log.Println("rpc server start")
+	s.Serve(lis)
+
 	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
 	log.Fatal(http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil))
-	log.Print("start listening")
 }

@@ -4,7 +4,7 @@
 // 	protoc        v3.7.1
 // source: worker.proto
 
-package grpc
+package worker
 
 import (
 	context "context"
@@ -78,6 +78,52 @@ func (InvokeReply_Code) EnumDescriptor() ([]byte, []int) {
 	return file_worker_proto_rawDescGZIP(), []int{1, 0}
 }
 
+type RegisterReply_Code int32
+
+const (
+	RegisterReply_OK    RegisterReply_Code = 0
+	RegisterReply_ERROR RegisterReply_Code = 1
+)
+
+// Enum value maps for RegisterReply_Code.
+var (
+	RegisterReply_Code_name = map[int32]string{
+		0: "OK",
+		1: "ERROR",
+	}
+	RegisterReply_Code_value = map[string]int32{
+		"OK":    0,
+		"ERROR": 1,
+	}
+)
+
+func (x RegisterReply_Code) Enum() *RegisterReply_Code {
+	p := new(RegisterReply_Code)
+	*p = x
+	return p
+}
+
+func (x RegisterReply_Code) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RegisterReply_Code) Descriptor() protoreflect.EnumDescriptor {
+	return file_worker_proto_enumTypes[1].Descriptor()
+}
+
+func (RegisterReply_Code) Type() protoreflect.EnumType {
+	return &file_worker_proto_enumTypes[1]
+}
+
+func (x RegisterReply_Code) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RegisterReply_Code.Descriptor instead.
+func (RegisterReply_Code) EnumDescriptor() ([]byte, []int) {
+	return file_worker_proto_rawDescGZIP(), []int{3, 0}
+}
+
 type InitFunctionReply_Code int32
 
 const (
@@ -111,11 +157,11 @@ func (x InitFunctionReply_Code) String() string {
 }
 
 func (InitFunctionReply_Code) Descriptor() protoreflect.EnumDescriptor {
-	return file_worker_proto_enumTypes[1].Descriptor()
+	return file_worker_proto_enumTypes[2].Descriptor()
 }
 
 func (InitFunctionReply_Code) Type() protoreflect.EnumType {
-	return &file_worker_proto_enumTypes[1]
+	return &file_worker_proto_enumTypes[2]
 }
 
 func (x InitFunctionReply_Code) Number() protoreflect.EnumNumber {
@@ -124,7 +170,7 @@ func (x InitFunctionReply_Code) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InitFunctionReply_Code.Descriptor instead.
 func (InitFunctionReply_Code) EnumDescriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{3, 0}
+	return file_worker_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type InvokeRequest struct {
@@ -229,6 +275,115 @@ func (x *InvokeReply) GetOutput() []byte {
 	return nil
 }
 
+type RegisterRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Addr   string `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Env    string `protobuf:"bytes,2,opt,name=env,proto3" json:"env,omitempty"`
+	Memory int64  `protobuf:"varint,3,opt,name=memory,proto3" json:"memory,omitempty"`
+	Disk   int64  `protobuf:"varint,4,opt,name=disk,proto3" json:"disk,omitempty"`
+}
+
+func (x *RegisterRequest) Reset() {
+	*x = RegisterRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_worker_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRequest) ProtoMessage() {}
+
+func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_worker_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
+func (*RegisterRequest) Descriptor() ([]byte, []int) {
+	return file_worker_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RegisterRequest) GetAddr() string {
+	if x != nil {
+		return x.Addr
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetMemory() int64 {
+	if x != nil {
+		return x.Memory
+	}
+	return 0
+}
+
+func (x *RegisterRequest) GetDisk() int64 {
+	if x != nil {
+		return x.Disk
+	}
+	return 0
+}
+
+type RegisterReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *RegisterReply) Reset() {
+	*x = RegisterReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_worker_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RegisterReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterReply) ProtoMessage() {}
+
+func (x *RegisterReply) ProtoReflect() protoreflect.Message {
+	mi := &file_worker_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterReply.ProtoReflect.Descriptor instead.
+func (*RegisterReply) Descriptor() ([]byte, []int) {
+	return file_worker_proto_rawDescGZIP(), []int{3}
+}
+
 type InitFunctionRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -242,7 +397,7 @@ type InitFunctionRequest struct {
 func (x *InitFunctionRequest) Reset() {
 	*x = InitFunctionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_worker_proto_msgTypes[2]
+		mi := &file_worker_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -255,7 +410,7 @@ func (x *InitFunctionRequest) String() string {
 func (*InitFunctionRequest) ProtoMessage() {}
 
 func (x *InitFunctionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_worker_proto_msgTypes[2]
+	mi := &file_worker_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +423,7 @@ func (x *InitFunctionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFunctionRequest.ProtoReflect.Descriptor instead.
 func (*InitFunctionRequest) Descriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{2}
+	return file_worker_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *InitFunctionRequest) GetFuncName() string {
@@ -301,7 +456,7 @@ type InitFunctionReply struct {
 func (x *InitFunctionReply) Reset() {
 	*x = InitFunctionReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_worker_proto_msgTypes[3]
+		mi := &file_worker_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -314,7 +469,7 @@ func (x *InitFunctionReply) String() string {
 func (*InitFunctionReply) ProtoMessage() {}
 
 func (x *InitFunctionReply) ProtoReflect() protoreflect.Message {
-	mi := &file_worker_proto_msgTypes[3]
+	mi := &file_worker_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +482,7 @@ func (x *InitFunctionReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InitFunctionReply.ProtoReflect.Descriptor instead.
 func (*InitFunctionReply) Descriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{3}
+	return file_worker_proto_rawDescGZIP(), []int{5}
 }
 
 type MetricsRequest struct {
@@ -339,7 +494,7 @@ type MetricsRequest struct {
 func (x *MetricsRequest) Reset() {
 	*x = MetricsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_worker_proto_msgTypes[4]
+		mi := &file_worker_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -352,7 +507,7 @@ func (x *MetricsRequest) String() string {
 func (*MetricsRequest) ProtoMessage() {}
 
 func (x *MetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_worker_proto_msgTypes[4]
+	mi := &file_worker_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +520,7 @@ func (x *MetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsRequest.ProtoReflect.Descriptor instead.
 func (*MetricsRequest) Descriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{4}
+	return file_worker_proto_rawDescGZIP(), []int{6}
 }
 
 type MetricsReply struct {
@@ -377,7 +532,7 @@ type MetricsReply struct {
 func (x *MetricsReply) Reset() {
 	*x = MetricsReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_worker_proto_msgTypes[5]
+		mi := &file_worker_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -390,7 +545,7 @@ func (x *MetricsReply) String() string {
 func (*MetricsReply) ProtoMessage() {}
 
 func (x *MetricsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_worker_proto_msgTypes[5]
+	mi := &file_worker_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -403,49 +558,63 @@ func (x *MetricsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsReply.ProtoReflect.Descriptor instead.
 func (*MetricsReply) Descriptor() ([]byte, []int) {
-	return file_worker_proto_rawDescGZIP(), []int{5}
+	return file_worker_proto_rawDescGZIP(), []int{7}
 }
 
 var File_worker_proto protoreflect.FileDescriptor
 
 var file_worker_proto_rawDesc = []byte{
-	0x0a, 0x0c, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x04,
-	0x67, 0x72, 0x70, 0x63, 0x22, 0x3d, 0x0a, 0x0d, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x61, 0x79,
-	0x6c, 0x6f, 0x61, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x70, 0x61, 0x79, 0x6c,
-	0x6f, 0x61, 0x64, 0x22, 0x5e, 0x0a, 0x0b, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52, 0x65, 0x70,
-	0x6c, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x22, 0x37, 0x0a, 0x04, 0x43, 0x6f,
-	0x64, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x14, 0x0a, 0x10, 0x4e, 0x4f,
-	0x5f, 0x53, 0x55, 0x43, 0x48, 0x5f, 0x46, 0x55, 0x4e, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x10, 0x01,
-	0x12, 0x11, 0x0a, 0x0d, 0x52, 0x55, 0x4e, 0x54, 0x49, 0x4d, 0x45, 0x5f, 0x45, 0x52, 0x52, 0x4f,
-	0x52, 0x10, 0x02, 0x22, 0x61, 0x0a, 0x13, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75, 0x6e, 0x63, 0x74,
-	0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x75,
-	0x6e, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x75,
-	0x6e, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x12, 0x18, 0x0a, 0x07,
-	0x63, 0x6f, 0x64, 0x65, 0x55, 0x52, 0x49, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63,
-	0x6f, 0x64, 0x65, 0x55, 0x52, 0x49, 0x22, 0x3d, 0x0a, 0x11, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75,
-	0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x28, 0x0a, 0x04, 0x43,
-	0x6f, 0x64, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x55,
-	0x50, 0x44, 0x41, 0x54, 0x45, 0x5f, 0x4f, 0x4b, 0x10, 0x01, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52,
-	0x52, 0x4f, 0x52, 0x10, 0x02, 0x22, 0x10, 0x0a, 0x0e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x0e, 0x0a, 0x0c, 0x4d, 0x65, 0x74, 0x72, 0x69,
-	0x63, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x32, 0xb9, 0x01, 0x0a, 0x06, 0x57, 0x6f, 0x72, 0x6b,
-	0x65, 0x72, 0x12, 0x32, 0x0a, 0x06, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x12, 0x13, 0x2e, 0x67,
-	0x72, 0x70, 0x63, 0x2e, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x11, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52,
-	0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x44, 0x0a, 0x0c, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75,
-	0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x19, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x49, 0x6e,
-	0x69, 0x74, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x17, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75, 0x6e,
-	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x35, 0x0a, 0x07,
-	0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x12, 0x14, 0x2e, 0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d,
-	0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e,
-	0x67, 0x72, 0x70, 0x63, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x52, 0x65, 0x70, 0x6c,
-	0x79, 0x22, 0x00, 0x42, 0x08, 0x5a, 0x06, 0x2e, 0x3b, 0x67, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x0a, 0x0c, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x06,
+	0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x22, 0x3d, 0x0a, 0x0d, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x70,
+	0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x70, 0x61,
+	0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x5e, 0x0a, 0x0b, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52,
+	0x65, 0x70, 0x6c, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x22, 0x37, 0x0a, 0x04,
+	0x43, 0x6f, 0x64, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x14, 0x0a, 0x10,
+	0x4e, 0x4f, 0x5f, 0x53, 0x55, 0x43, 0x48, 0x5f, 0x46, 0x55, 0x4e, 0x43, 0x54, 0x49, 0x4f, 0x4e,
+	0x10, 0x01, 0x12, 0x11, 0x0a, 0x0d, 0x52, 0x55, 0x4e, 0x54, 0x49, 0x4d, 0x45, 0x5f, 0x45, 0x52,
+	0x52, 0x4f, 0x52, 0x10, 0x02, 0x22, 0x63, 0x0a, 0x0f, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65,
+	0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x10, 0x0a, 0x03,
+	0x65, 0x6e, 0x76, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x6e, 0x76, 0x12, 0x16,
+	0x0a, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06,
+	0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x69, 0x73, 0x6b, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x64, 0x69, 0x73, 0x6b, 0x22, 0x2a, 0x0a, 0x0d, 0x52, 0x65,
+	0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x19, 0x0a, 0x04, 0x43,
+	0x6f, 0x64, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x45,
+	0x52, 0x52, 0x4f, 0x52, 0x10, 0x01, 0x22, 0x61, 0x0a, 0x13, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75,
+	0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1a, 0x0a,
+	0x08, 0x66, 0x75, 0x6e, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x66, 0x75, 0x6e, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6d, 0x61,
+	0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x12,
+	0x18, 0x0a, 0x07, 0x63, 0x6f, 0x64, 0x65, 0x55, 0x52, 0x49, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x63, 0x6f, 0x64, 0x65, 0x55, 0x52, 0x49, 0x22, 0x3d, 0x0a, 0x11, 0x49, 0x6e, 0x69,
+	0x74, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x28,
+	0x0a, 0x04, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x4f, 0x4b, 0x10, 0x00, 0x12, 0x0d,
+	0x0a, 0x09, 0x55, 0x50, 0x44, 0x41, 0x54, 0x45, 0x5f, 0x4f, 0x4b, 0x10, 0x01, 0x12, 0x09, 0x0a,
+	0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x02, 0x22, 0x10, 0x0a, 0x0e, 0x4d, 0x65, 0x74, 0x72,
+	0x69, 0x63, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x0e, 0x0a, 0x0c, 0x4d, 0x65,
+	0x74, 0x72, 0x69, 0x63, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x32, 0x83, 0x02, 0x0a, 0x06, 0x57,
+	0x6f, 0x72, 0x6b, 0x65, 0x72, 0x12, 0x36, 0x0a, 0x06, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x12,
+	0x15, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e, 0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e,
+	0x49, 0x6e, 0x76, 0x6f, 0x6b, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x3c, 0x0a,
+	0x08, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x12, 0x17, 0x2e, 0x77, 0x6f, 0x72, 0x6b,
+	0x65, 0x72, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x15, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e, 0x52, 0x65, 0x67, 0x69,
+	0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x48, 0x0a, 0x0c, 0x49,
+	0x6e, 0x69, 0x74, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1b, 0x2e, 0x77, 0x6f,
+	0x72, 0x6b, 0x65, 0x72, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f,
+	0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x19, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65,
+	0x72, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x46, 0x75, 0x6e, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65,
+	0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x39, 0x0a, 0x07, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
+	0x12, 0x16, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e, 0x77, 0x6f, 0x72, 0x6b, 0x65,
+	0x72, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00,
+	0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x3b, 0x77, 0x6f, 0x72, 0x6b, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -460,30 +629,35 @@ func file_worker_proto_rawDescGZIP() []byte {
 	return file_worker_proto_rawDescData
 }
 
-var file_worker_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_worker_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_worker_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_worker_proto_goTypes = []interface{}{
-	(InvokeReply_Code)(0),       // 0: grpc.InvokeReply.Code
-	(InitFunctionReply_Code)(0), // 1: grpc.InitFunctionReply.Code
-	(*InvokeRequest)(nil),       // 2: grpc.InvokeRequest
-	(*InvokeReply)(nil),         // 3: grpc.InvokeReply
-	(*InitFunctionRequest)(nil), // 4: grpc.InitFunctionRequest
-	(*InitFunctionReply)(nil),   // 5: grpc.InitFunctionReply
-	(*MetricsRequest)(nil),      // 6: grpc.MetricsRequest
-	(*MetricsReply)(nil),        // 7: grpc.MetricsReply
+	(InvokeReply_Code)(0),       // 0: worker.InvokeReply.Code
+	(RegisterReply_Code)(0),     // 1: worker.RegisterReply.Code
+	(InitFunctionReply_Code)(0), // 2: worker.InitFunctionReply.Code
+	(*InvokeRequest)(nil),       // 3: worker.InvokeRequest
+	(*InvokeReply)(nil),         // 4: worker.InvokeReply
+	(*RegisterRequest)(nil),     // 5: worker.RegisterRequest
+	(*RegisterReply)(nil),       // 6: worker.RegisterReply
+	(*InitFunctionRequest)(nil), // 7: worker.InitFunctionRequest
+	(*InitFunctionReply)(nil),   // 8: worker.InitFunctionReply
+	(*MetricsRequest)(nil),      // 9: worker.MetricsRequest
+	(*MetricsReply)(nil),        // 10: worker.MetricsReply
 }
 var file_worker_proto_depIdxs = []int32{
-	2, // 0: grpc.Worker.Invoke:input_type -> grpc.InvokeRequest
-	4, // 1: grpc.Worker.InitFunction:input_type -> grpc.InitFunctionRequest
-	6, // 2: grpc.Worker.Metrics:input_type -> grpc.MetricsRequest
-	3, // 3: grpc.Worker.Invoke:output_type -> grpc.InvokeReply
-	5, // 4: grpc.Worker.InitFunction:output_type -> grpc.InitFunctionReply
-	7, // 5: grpc.Worker.Metrics:output_type -> grpc.MetricsReply
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3,  // 0: worker.Worker.Invoke:input_type -> worker.InvokeRequest
+	5,  // 1: worker.Worker.Register:input_type -> worker.RegisterRequest
+	7,  // 2: worker.Worker.InitFunction:input_type -> worker.InitFunctionRequest
+	9,  // 3: worker.Worker.Metrics:input_type -> worker.MetricsRequest
+	4,  // 4: worker.Worker.Invoke:output_type -> worker.InvokeReply
+	6,  // 5: worker.Worker.Register:output_type -> worker.RegisterReply
+	8,  // 6: worker.Worker.InitFunction:output_type -> worker.InitFunctionReply
+	10, // 7: worker.Worker.Metrics:output_type -> worker.MetricsReply
+	4,  // [4:8] is the sub-list for method output_type
+	0,  // [0:4] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_worker_proto_init() }
@@ -517,7 +691,7 @@ func file_worker_proto_init() {
 			}
 		}
 		file_worker_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InitFunctionRequest); i {
+			switch v := v.(*RegisterRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -529,7 +703,7 @@ func file_worker_proto_init() {
 			}
 		}
 		file_worker_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InitFunctionReply); i {
+			switch v := v.(*RegisterReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -541,7 +715,7 @@ func file_worker_proto_init() {
 			}
 		}
 		file_worker_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*MetricsRequest); i {
+			switch v := v.(*InitFunctionRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -553,6 +727,30 @@ func file_worker_proto_init() {
 			}
 		}
 		file_worker_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InitFunctionReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_worker_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MetricsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_worker_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MetricsReply); i {
 			case 0:
 				return &v.state
@@ -570,8 +768,8 @@ func file_worker_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_worker_proto_rawDesc,
-			NumEnums:      2,
-			NumMessages:   6,
+			NumEnums:      3,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -599,6 +797,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type WorkerClient interface {
 	Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeReply, error)
+	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterReply, error)
 	InitFunction(ctx context.Context, in *InitFunctionRequest, opts ...grpc.CallOption) (*InitFunctionReply, error)
 	Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*MetricsReply, error)
 }
@@ -613,7 +812,16 @@ func NewWorkerClient(cc grpc.ClientConnInterface) WorkerClient {
 
 func (c *workerClient) Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeReply, error) {
 	out := new(InvokeReply)
-	err := c.cc.Invoke(ctx, "/grpc.Worker/Invoke", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/worker.Worker/Invoke", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workerClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterReply, error) {
+	out := new(RegisterReply)
+	err := c.cc.Invoke(ctx, "/worker.Worker/Register", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +830,7 @@ func (c *workerClient) Invoke(ctx context.Context, in *InvokeRequest, opts ...gr
 
 func (c *workerClient) InitFunction(ctx context.Context, in *InitFunctionRequest, opts ...grpc.CallOption) (*InitFunctionReply, error) {
 	out := new(InitFunctionReply)
-	err := c.cc.Invoke(ctx, "/grpc.Worker/InitFunction", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/worker.Worker/InitFunction", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -631,7 +839,7 @@ func (c *workerClient) InitFunction(ctx context.Context, in *InitFunctionRequest
 
 func (c *workerClient) Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*MetricsReply, error) {
 	out := new(MetricsReply)
-	err := c.cc.Invoke(ctx, "/grpc.Worker/Metrics", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/worker.Worker/Metrics", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -641,6 +849,7 @@ func (c *workerClient) Metrics(ctx context.Context, in *MetricsRequest, opts ...
 // WorkerServer is the server API for Worker service.
 type WorkerServer interface {
 	Invoke(context.Context, *InvokeRequest) (*InvokeReply, error)
+	Register(context.Context, *RegisterRequest) (*RegisterReply, error)
 	InitFunction(context.Context, *InitFunctionRequest) (*InitFunctionReply, error)
 	Metrics(context.Context, *MetricsRequest) (*MetricsReply, error)
 }
@@ -651,6 +860,9 @@ type UnimplementedWorkerServer struct {
 
 func (*UnimplementedWorkerServer) Invoke(context.Context, *InvokeRequest) (*InvokeReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Invoke not implemented")
+}
+func (*UnimplementedWorkerServer) Register(context.Context, *RegisterRequest) (*RegisterReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
 func (*UnimplementedWorkerServer) InitFunction(context.Context, *InitFunctionRequest) (*InitFunctionReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitFunction not implemented")
@@ -673,10 +885,28 @@ func _Worker_Invoke_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.Worker/Invoke",
+		FullMethod: "/worker.Worker/Invoke",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkerServer).Invoke(ctx, req.(*InvokeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Worker_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkerServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/worker.Worker/Register",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkerServer).Register(ctx, req.(*RegisterRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -691,7 +921,7 @@ func _Worker_InitFunction_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.Worker/InitFunction",
+		FullMethod: "/worker.Worker/InitFunction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkerServer).InitFunction(ctx, req.(*InitFunctionRequest))
@@ -709,7 +939,7 @@ func _Worker_Metrics_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.Worker/Metrics",
+		FullMethod: "/worker.Worker/Metrics",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkerServer).Metrics(ctx, req.(*MetricsRequest))
@@ -718,12 +948,16 @@ func _Worker_Metrics_Handler(srv interface{}, ctx context.Context, dec func(inte
 }
 
 var _Worker_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "grpc.Worker",
+	ServiceName: "worker.Worker",
 	HandlerType: (*WorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Invoke",
 			Handler:    _Worker_Invoke_Handler,
+		},
+		{
+			MethodName: "Register",
+			Handler:    _Worker_Register_Handler,
 		},
 		{
 			MethodName: "InitFunction",

@@ -2,6 +2,9 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 h1:w+iIsaOQNcT7OZ575w+acHgRric5iCyQh+xv+KJ4HB8=
 github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/JointFaaS/Worker v0.0.0-20200301081928-23d09d867294 h1:vJNAi8GMDZVp+Mj2vqpma0sW3/CwJLp88TM/93NGLzU=
+github.com/JointFaas/Worker v0.0.0-20200301081928-23d09d867294 h1:URJ5+xal7XGcL4E8JZRQVbTMzc+m235N0696wWjeVr8=
+github.com/JointFaas/Worker v0.0.0-20200301081928-23d09d867294/go.mod h1:ZDRJS2ueqp7LkbLRzwTJsPyXADQxzEUhJJ8vifNb/HQ=
 github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5 h1:ygIc8M6trr62pF5DucadTWGdEB4mEyvzi0e2nbcmcyA=
 github.com/Microsoft/go-winio v0.4.15-0.20190919025122-fc70bd9a86b5/go.mod h1:tTuCMEN+UleMWgg9dVx4Hu52b1bJo+59jBh3ajtinzw=
 github.com/Microsoft/hcsshim v0.8.7-0.20191101173118-65519b62243c h1:YMP6olTU903X3gxQJckdmiP8/zkSMq4kN3uipsU9XjU=

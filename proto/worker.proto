@@ -1,10 +1,11 @@
 syntax = "proto3";
 
-option go_package = ".;grpc";
-package grpc;
+option go_package = ".;worker";
+package worker;
 
 service Worker {
     rpc Invoke(InvokeRequest) returns (InvokeReply) {}
+    rpc Register(RegisterRequest) returns (RegisterReply) {}
     rpc InitFunction(InitFunctionRequest) returns (InitFunctionReply) {}
     rpc Metrics(MetricsRequest) returns (MetricsReply) {}
 }
@@ -21,6 +22,20 @@ message InvokeReply {
         RUNTIME_ERROR = 2;
     }
     bytes output = 2;
+}
+
+message RegisterRequest {
+    string addr = 1;
+    string env = 2;
+    int64 memory = 3;
+    int64 disk = 4;
+}
+
+message RegisterReply {
+    enum Code {
+        OK = 0;
+        ERROR = 1;
+    }
 }
 
 message InitFunctionRequest {
