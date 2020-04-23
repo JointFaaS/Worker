@@ -12,8 +12,6 @@ import (
 // Client is the API client that performs all operations
 // against a Worker.
 type Client struct {
-	mu sync.Mutex
-
 	config Config
 
 	dockerClient *dc.Client
@@ -21,11 +19,15 @@ type Client struct {
 	// funcName to CodeURI and Image
 	funcResourceMap map[string]*FuncResource
 
+	resourceRWMu sync.RWMutex
+
 	// funcName to Container
 	funcContainerMap map[string][]*wc.Meta
 
 	// the key is memory size of the container
 	idleContainerMap map[int64][]*wc.Meta
+
+	containerMu sync.Mutex
 
 	ctx context.Context
 
@@ -49,15 +51,16 @@ func NewClient(config Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	c := &Client{
-		mu: 				   sync.Mutex{},
-		dockerClient:          dockerClient,
-		funcResourceMap:       make(map[string]*FuncResource),
-		funcContainerMap:      make(map[string][]*wc.Meta),
-		idleContainerMap:	   make(map[int64][]*wc.Meta),
-		ctx:                   ctx,
-		cancel:                cancel,
-		config:                config,
-		wg:                    new(sync.WaitGroup),
+		containerMu:      sync.Mutex{},
+		resourceRWMu:     sync.RWMutex{},
+		dockerClient:     dockerClient,
+		funcResourceMap:  make(map[string]*FuncResource),
+		funcContainerMap: make(map[string][]*wc.Meta),
+		idleContainerMap: make(map[int64][]*wc.Meta),
+		ctx:              ctx,
+		cancel:           cancel,
+		config:           config,
+		wg:               new(sync.WaitGroup),
 	}
 
 	return c, nil
@@ -72,21 +75,18 @@ func (c *Client) Close() {
 
 // Invoke exec a function with name and payload
 func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.InvokeResponse, error) {
-	c.mu.Lock()
+	c.containerMu.Lock()
 	containers, isPresent := c.funcContainerMap[req.GetName()]
 	if isPresent == false {
 		containers = make([]*wc.Meta, 3)
 		c.funcContainerMap[req.GetName()] = containers
 	}
-	if len(containers) == 0 {
-
-	}
-	c.mu.Unlock()
+	c.containerMu.Unlock()
 	for _, container := range containers {
 		// if the connection is broken, someone will reset the container as nil
 		// so here we just skip that container.
 		if container != nil {
-			output, err := container.InvokeFunc(req.Payload)
+			output, err := container.InvokeFunc(ctx, req.GetName(), req.GetPayload())
 			if err == nil {
 				return &wpb.InvokeResponse{Code: wpb.InvokeResponse_OK, Output: output}, nil
 			}
@@ -98,62 +98,62 @@ func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.Invok
 			}
 		}
 		// no idle container
-		go func() {
-			c.mu.Lock()
-			c.mu.Unlock()
-		}()
-		return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RETRY, Output: nil}, nil
 	}
-	return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RUNTIME_ERROR, Output: nil}, nil
+	err := c.addSpeifiedFuncContainer(req.GetName(), len(containers)+1)
+	if err != nil {
+		return &wpb.InvokeResponse{Code: wpb.InvokeResponse_NO_SUCH_FUNCTION, Output: nil}, nil
+	}
+	return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RETRY, Output: nil}, nil
 }
 
 // Register is for a function exec env register itself into Worker env-list
 func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *wpb.RegisterResponse, err error) {
 	res = &wpb.RegisterResponse{
 		Code: wpb.RegisterResponse_OK,
-		Msg: "",
+		Msg:  "",
 	}
 	var container *wc.Meta
-	container, err = wc.NewMeta(req.GetAddr())
+	container, err = wc.NewMeta(req.GetAddr(), req.GetFuncName(), req.GetRuntime())
 	if err != nil {
 		res.Code = wpb.RegisterResponse_ERROR
 		res.Msg = err.Error()
 		return
 	}
 	memorySize := req.GetMemory()
-	memorySize = memorySize - memorySize % 128
+	memorySize = memorySize - memorySize%128
 	if memorySize < 128 || memorySize > 4096 {
 		res.Code = wpb.RegisterResponse_ERROR
 		res.Msg = "Invalid Memory, it should be in [128, 4096]"
 		return
 	}
-	c.mu.Lock()
+	c.containerMu.Lock()
 	containers, isPresent := c.idleContainerMap[memorySize]
 	if isPresent == false {
 		containers = make([]*wc.Meta, 3)
 	}
 	c.idleContainerMap[memorySize] = append(containers, container)
-	c.mu.Unlock()
+	c.containerMu.Unlock()
 	return
 }
 
 // InitFunction the Manager pass function info to Worker
 func (c *Client) InitFunction(ctx context.Context, req *wpb.InitFunctionRequest) (*wpb.InitFunctionResponse, error) {
 	resource := &FuncResource{
-		FuncName: req.GetFuncName(),
-		Image: req.GetImage(),
-		CodeURL: req.GetCodeURI(),
-		Timeout: req.GetTimeout(),
+		FuncName:   req.GetFuncName(),
+		Image:      req.GetImage(),
+		CodeURL:    req.GetCodeURI(),
+		Runtime:	req.GetRuntime(),
+		Timeout:    req.GetTimeout(),
 		MemorySize: req.GetMemorySize(),
 	}
 
-	c.mu.Lock()
+	c.resourceRWMu.Lock()
 	c.funcResourceMap[resource.FuncName] = resource
-	c.mu.Unlock()
+	c.resourceRWMu.Unlock()
 
 	return &wpb.InitFunctionResponse{
 		Code: wpb.InitFunctionResponse_OK,
-		Msg: "",
+		Msg:  "",
 	}, nil
 }
 

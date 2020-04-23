@@ -2,9 +2,10 @@ package controller
 
 import (
 	"context"
+	"errors"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
+	dtc "github.com/docker/docker/api/types/container"
 )
 
 func (c *Client) clearContainer(ctx context.Context) error {
@@ -25,12 +26,48 @@ func (c *Client) clearContainer(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) createContainer(ctx context.Context, labels map[string]string, image string) (container.ContainerCreateCreatedBody, error) {
-	body, err := c.dockerClient.ContainerCreate(ctx,
-		&container.Config{
-			Image:  image,
-			Labels: labels,
-		},
-		nil, nil, "")
-	return body, err
+func (c *Client) addSpeifiedFuncContainer(funcName string, targetNum int) error {
+	c.resourceRWMu.RLock()
+	resource, isPresent := c.funcResourceMap[funcName]
+	c.resourceRWMu.RUnlock()
+	if isPresent == false {
+		return errors.New("Such Function has not been initialised")
+	}
+	go func() {
+		c.containerMu.Lock()
+		defer c.containerMu.Unlock()
+		idleContainers, isPresent := c.idleContainerMap[resource.MemorySize]
+		if isPresent == false {
+			c.addIdleContainer(resource.Image, resource.MemorySize)
+		}
+		if resource.Runtime == "custom" {
+			
+		} else {
+			for _, container := range idleContainers {
+				if container.GetRuntime() == resource.Runtime {
+					
+				}
+			}
+		}
+	}()
+	return nil
+}
+
+func (c *Client) addIdleContainer(image string, memorySize int64) error {
+	container, err := c.dockerClient.ContainerCreate(context.TODO(),
+	&dtc.Config{
+		Image:  image,
+	},
+	&dtc.HostConfig{
+
+	},
+	nil, "")
+	if err != nil {
+		return err
+	}
+	err = c.dockerClient.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
