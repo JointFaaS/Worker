@@ -71,18 +71,20 @@ func (m *Meta) SetConcurrencyLimit(limit int64) {
 
 // InvokeFunc exec the func in container
 func (m *Meta) InvokeFunc(ctx context.Context, funcName string, payload []byte) ([]byte, error) {
+	defer atomic.AddInt64(&m.concurrencyCounter, -1)
 	if atomic.AddInt64(&m.concurrencyCounter, 1) <= m.concurrencyLimit {
 		if m.timeout > 0 {
 			var cancel context.CancelFunc
 			ctx, cancel = context.WithTimeout(ctx, time.Duration(m.timeout) * time.Second)
 			defer cancel()
 		}
-		m.containerClient.Invoke(ctx, &cpb.InvokeRequest{FuncName: funcName, Payload: payload})
-	} else {
-		atomic.AddInt64(&m.concurrencyCounter, -1)
-		return nil, &ecl
+		res, err := m.containerClient.Invoke(ctx, &cpb.InvokeRequest{FuncName: funcName, Payload: payload})
+		if err != nil {
+			return nil, err
+		}
+		return res.GetOutput(), nil
 	}
-	return nil, nil
+	return nil, &ecl
 }
 
 // SetEnvVariable overwrite some envs in container
