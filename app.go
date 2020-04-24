@@ -31,7 +31,7 @@ func logInit() {
 
 type config struct {
 	WorkerID string `yaml:"workerID"`
-	WorkerSocketPath string `yaml:"workerSocketPath"`
+	Localhost string `yaml:"localhost"`
 	GrpcListenPort string `yaml:"GrpcListenPort"`
 	HTTPListenPort string `yaml:"HTTPListenPort"`
 	ManagerAddress string `yaml:"managerAddress"`
@@ -90,6 +90,8 @@ func main() {
 		panic(err)
 	}
 	client, err := controller.NewClient(controller.Config{
+		Localhost: cfg.Localhost,
+		ListenPort: cfg.GrpcListenPort,
 		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
 	if err != nil {

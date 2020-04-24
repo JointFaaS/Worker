@@ -78,9 +78,9 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 	container, err := c.dockerClient.ContainerCreate(context.TODO(),
 		&dtc.Config{
 			Image: image,
+			Env: []string{"WORK_HOST=" + c.localhost},
 		},
-		&dtc.HostConfig{},
-		nil, "")
+		nil, nil, "")
 	if err != nil {
 		log.Println(err.Error())
 		return "", err

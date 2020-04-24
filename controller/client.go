@@ -19,6 +19,12 @@ type Client struct {
 
 	dockerClient *dc.Client
 
+	// this is a stupid fix which is intended to help the docker container
+	// connect to the Worker running on the host.
+	// the localhost is the host address in docker network(172.xx)
+	// in future, is should be replaced with network config
+	localhost string
+
 	// funcName to CreatingContainerNum
 	creatingContainerNumMap map[string]int64
 	creatingContainerMu sync.Mutex
@@ -48,6 +54,8 @@ type Client struct {
 // Config is used to initialize controller client
 // It supports adjusting the resource limits
 type Config struct {
+	Localhost string
+	ListenPort string
 	ContainerEnvVariables []string
 }
 
@@ -60,6 +68,7 @@ func NewClient(config Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	c := &Client{
+		localhost:		  config.Localhost + ":" + config.ListenPort,
 		containerMu:      sync.RWMutex{},
 		resourceMu:       sync.RWMutex{},
 		creatingContainerMu: sync.Mutex{},
