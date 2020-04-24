@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"container/list"
 	"context"
 	"sync"
 
@@ -21,13 +22,13 @@ type Client struct {
 
 	resourceRWMu sync.RWMutex
 
-	// funcName to Container
-	funcContainerMap map[string][]*wc.Meta
+	// funcName to []Container
+	funcContainerMap map[string]*list.List
 
-	// the key is memory size of the container
-	idleContainerMap map[int64][]*wc.Meta
+	// the key is memorySize of the container
+	idleContainerMap map[int64]*list.List
 
-	containerMu sync.Mutex
+	containerMu sync.RWMutex
 
 	ctx context.Context
 
@@ -51,12 +52,12 @@ func NewClient(config Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	c := &Client{
-		containerMu:      sync.Mutex{},
+		containerMu:      sync.RWMutex{},
 		resourceRWMu:     sync.RWMutex{},
 		dockerClient:     dockerClient,
 		funcResourceMap:  make(map[string]*FuncResource),
-		funcContainerMap: make(map[string][]*wc.Meta),
-		idleContainerMap: make(map[int64][]*wc.Meta),
+		funcContainerMap: make(map[string]*list.List),
+		idleContainerMap: make(map[int64]*list.List),
 		ctx:              ctx,
 		cancel:           cancel,
 		config:           config,
@@ -75,33 +76,32 @@ func (c *Client) Close() {
 
 // Invoke exec a function with name and payload
 func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.InvokeResponse, error) {
-	c.containerMu.Lock()
-	containers, isPresent := c.funcContainerMap[req.GetName()]
-	if isPresent == false {
-		containers = make([]*wc.Meta, 3)
-		c.funcContainerMap[req.GetName()] = containers
-	}
-	c.containerMu.Unlock()
-	for _, container := range containers {
-		// if the connection is broken, someone will reset the container as nil
-		// so here we just skip that container.
-		if container != nil {
-			output, err := container.InvokeFunc(ctx, req.GetName(), req.GetPayload())
-			if err == nil {
-				return &wpb.InvokeResponse{Code: wpb.InvokeResponse_OK, Output: output}, nil
-			}
-			switch err.(type) {
-			case *wc.ExceedConcurrencyLimit:
-				continue
-			default:
-				return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RUNTIME_ERROR, Output: []byte(err.Error())}, err
+	for i := 0; i < 3; i++ {
+		c.containerMu.RLock()
+		containers, isPresent := c.funcContainerMap[req.GetName()]
+		if isPresent {
+			for e := containers.Front(); e != nil; e = e.Next() {
+				// if the connection is broken, someone will reset the container
+				output, err := e.Value.(*wc.Meta).InvokeFunc(ctx, req.GetName(), req.GetPayload())
+				if err == nil {
+					c.containerMu.RUnlock()
+					return &wpb.InvokeResponse{Code: wpb.InvokeResponse_OK, Output: output}, nil
+				}
+				switch err.(type) {
+				case *wc.ExceedConcurrencyLimit:
+					continue
+				default:
+					c.containerMu.RUnlock()
+					return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RUNTIME_ERROR, Output: []byte(err.Error())}, err
+				}
 			}
 		}
+		c.containerMu.RUnlock()
 		// no idle container
-	}
-	err := c.addSpeifiedFuncContainer(req.GetName(), len(containers)+1)
-	if err != nil {
-		return &wpb.InvokeResponse{Code: wpb.InvokeResponse_NO_SUCH_FUNCTION, Output: nil}, nil
+		err := c.addSpecifiedContainer(req.GetName())
+		if err != nil {
+			return &wpb.InvokeResponse{Code: wpb.InvokeResponse_NO_SUCH_FUNCTION, Output: nil}, nil
+		}
 	}
 	return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RETRY, Output: nil}, nil
 }
@@ -112,6 +112,13 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 		Code: wpb.RegisterResponse_OK,
 		Msg:  "",
 	}
+	memorySize := req.GetMemory()
+	memorySize = memorySize - memorySize % 128
+	if memorySize < 128 || memorySize > 4096 {
+		res.Code = wpb.RegisterResponse_ERROR
+		res.Msg = "Invalid Memory, it should be in [128, 4096]"
+		return
+	}
 	var container *wc.Meta
 	container, err = wc.NewMeta(req.GetAddr(), req.GetFuncName(), req.GetRuntime())
 	if err != nil {
@@ -119,19 +126,22 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 		res.Msg = err.Error()
 		return
 	}
-	memorySize := req.GetMemory()
-	memorySize = memorySize - memorySize%128
-	if memorySize < 128 || memorySize > 4096 {
-		res.Code = wpb.RegisterResponse_ERROR
-		res.Msg = "Invalid Memory, it should be in [128, 4096]"
-		return
-	}
 	c.containerMu.Lock()
-	containers, isPresent := c.idleContainerMap[memorySize]
-	if isPresent == false {
-		containers = make([]*wc.Meta, 3)
+	if req.GetFuncName() == "" {
+		containers, isPresent := c.idleContainerMap[memorySize]
+		if isPresent == false {
+			containers = list.New()
+			c.idleContainerMap[memorySize] = containers
+		}
+		containers.PushBack(container)
+	} else {
+		containers, isPresent := c.funcContainerMap[req.GetFuncName()]
+		if isPresent == false {
+			containers = list.New()
+			c.funcContainerMap[req.GetFuncName()] = containers
+		}
+		containers.PushBack(container)
 	}
-	c.idleContainerMap[memorySize] = append(containers, container)
 	c.containerMu.Unlock()
 	return
 }

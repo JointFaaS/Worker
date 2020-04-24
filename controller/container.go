@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"container/list"
 	"context"
 	"errors"
 
@@ -26,34 +27,38 @@ func (c *Client) clearContainer(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) addSpeifiedFuncContainer(funcName string, targetNum int) error {
+func (c *Client) addSpecifiedContainer(funcName string) error {
 	c.resourceRWMu.RLock()
 	resource, isPresent := c.funcResourceMap[funcName]
 	c.resourceRWMu.RUnlock()
 	if isPresent == false {
 		return errors.New("Such Function has not been initialised")
 	}
-	go func() {
-		c.containerMu.Lock()
-		defer c.containerMu.Unlock()
-		idleContainers, isPresent := c.idleContainerMap[resource.MemorySize]
-		if isPresent == false {
-			c.addIdleContainer(resource.Image, resource.MemorySize)
+
+	if resource.Runtime == "custom" {
+		c.addContainer(resource.Image, resource.MemorySize, resource.FuncName)
+		return nil
+	}
+
+	c.containerMu.Lock()
+	idleContainers, isPresent := c.idleContainerMap[resource.MemorySize]
+	if isPresent && idleContainers.Len() > 0 {
+		containers, cIsPresent := c.funcContainerMap[resource.FuncName]
+		if cIsPresent == false {
+			containers = list.New()
+			c.funcContainerMap[resource.FuncName] = containers
 		}
-		if resource.Runtime == "custom" {
-			
-		} else {
-			for _, container := range idleContainers {
-				if container.GetRuntime() == resource.Runtime {
-					
-				}
-			}
-		}
-	}()
+		e := idleContainers.Remove(idleContainers.Front())
+		containers.PushBack(e)
+		c.containerMu.Unlock()
+		go c.addGeneralContainer(resource.Image, resource.MemorySize)
+		return nil
+	}
+	c.containerMu.Unlock()
 	return nil
 }
 
-func (c *Client) addIdleContainer(image string, memorySize int64) error {
+func (c *Client) addContainer(image string, memorySize int64, funcName string) (string, error) {
 	container, err := c.dockerClient.ContainerCreate(context.TODO(),
 	&dtc.Config{
 		Image:  image,
@@ -63,11 +68,15 @@ func (c *Client) addIdleContainer(image string, memorySize int64) error {
 	},
 	nil, "")
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = c.dockerClient.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return container.ID, nil
+}
+
+func (c *Client) addGeneralContainer(image string, memorySize int64) (string, error) {
+	return c.addContainer(image, memorySize, "")
 }
