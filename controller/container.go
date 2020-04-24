@@ -82,7 +82,7 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 	container, err := c.dockerClient.ContainerCreate(context.TODO(),
 		&dtc.Config{
 			Image: image,
-			Env: []string{"WORK_HOST=" + c.localhost, "MEMORY=" + strconv.FormatInt(memorySize, 10)},
+			Env: []string{"WORK_HOST=" + c.localhost, "MEMORY=" + strconv.FormatInt(memorySize, 10), "FUNC_NAME=" + funcName},
 			Labels: map[string]string{"type": "jointfaas"},
 		},
 		&dtc.HostConfig{

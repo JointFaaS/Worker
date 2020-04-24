@@ -137,7 +137,7 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 	}
 	err = nil
 	memorySize := req.GetMemory()
-	memorySize = memorySize - memorySize%128
+	memorySize = memorySize - memorySize % 128
 	if memorySize < 128 || memorySize > 4096 {
 		res.Code = wpb.RegisterResponse_ERROR
 		res.Msg = "Invalid Memory, it should be in [128, 4096]"
@@ -170,8 +170,11 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 				res.Msg = "Missing Function Resource"
 				return
 			}
-			container.LoadFunc(ctx, resource.FuncName, resource.CodeURL)
-			// discard the loadFunc error
+			err := container.LoadFunc(ctx, resource.FuncName, resource.CodeURL)
+			if err != nil {
+				log.Print(err.Error())
+			}
+			// ignore the loadFunc error
 		}
 		c.containerMu.Lock()
 		containers, isPresent := c.funcContainerMap[req.GetFuncName()]
