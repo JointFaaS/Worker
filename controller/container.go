@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"errors"
+	"log"
 
 	"github.com/docker/docker/api/types"
 	dtc "github.com/docker/docker/api/types/container"
@@ -67,10 +68,11 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 		num, isPresent := c.creatingContainerNumMap[funcName]
 		if isPresent == false || num == 0 {
 			c.creatingContainerNumMap[funcName] = 1
+			c.creatingContainerMu.Unlock()
 		} else {
+			c.creatingContainerMu.Unlock()
 			return "", nil
 		}
-		c.creatingContainerMu.Unlock()
 	}
 
 	container, err := c.dockerClient.ContainerCreate(context.TODO(),
@@ -80,10 +82,12 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 		&dtc.HostConfig{},
 		nil, "")
 	if err != nil {
+		log.Println(err.Error())
 		return "", err
 	}
 	err = c.dockerClient.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{})
 	if err != nil {
+		log.Println(err.Error())
 		return "", err
 	}
 	return container.ID, nil

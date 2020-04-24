@@ -3,6 +3,7 @@ package controller
 import (
 	"container/list"
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -89,24 +90,22 @@ func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.Invok
 	for i := 0; i < 3; i++ {
 		c.containerMu.RLock()
 		containers, isPresent := c.funcContainerMap[req.GetName()]
+		c.containerMu.RUnlock()
 		if isPresent {
 			for e := containers.Front(); e != nil; e = e.Next() {
 				// if the connection is broken, someone will reset the container
 				output, err := e.Value.(*wc.Meta).InvokeFunc(ctx, req.GetName(), req.GetPayload())
 				if err == nil {
-					c.containerMu.RUnlock()
 					return &wpb.InvokeResponse{Code: wpb.InvokeResponse_OK, Output: output}, nil
 				}
 				switch err.(type) {
 				case *wc.ExceedConcurrencyLimit:
 					continue
 				default:
-					c.containerMu.RUnlock()
 					return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RUNTIME_ERROR, Output: []byte(err.Error())}, err
 				}
 			}
 		}
-		c.containerMu.RUnlock()
 		// no idle container
 		err := c.addSpecifiedContainer(req.GetName())
 		if err != nil {
@@ -115,6 +114,7 @@ func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.Invok
 		// TODO
 		// I never find the best way to handle the async container creating
 		// sleep is a simple solution, just retry and ensure there is no deadlock
+		log.Printf("%s sleep", req.GetName())
 		time.Sleep(time.Millisecond * 500)
 	}
 	return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RETRY, Output: nil}, nil
