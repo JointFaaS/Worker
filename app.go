@@ -32,6 +32,7 @@ func logInit() {
 type config struct {
 	WorkerID string `yaml:"workerID"`
 	Localhost string `yaml:"localhost"`
+	ListenAddr string `yaml:"listenAddr"`
 	GrpcListenPort string `yaml:"GrpcListenPort"`
 	HTTPListenPort string `yaml:"HTTPListenPort"`
 	ManagerAddress string `yaml:"managerAddress"`
@@ -97,7 +98,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lis, err := net.Listen("tcp", cfg.GrpcListenPort)
+	lis, err := net.Listen("tcp", cfg.ListenAddr + ":" + cfg.GrpcListenPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
