@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strconv"
 
 	"github.com/docker/docker/api/types"
 	dtc "github.com/docker/docker/api/types/container"
 )
 
-func (c *Client) clearContainer(ctx context.Context) error {
+func (c *Client) ClearContainer(ctx context.Context) error {
 	containers, err := c.dockerClient.ContainerList(
 		ctx,
 		types.ContainerListOptions{
@@ -20,9 +21,12 @@ func (c *Client) clearContainer(ctx context.Context) error {
 		return err
 	}
 	for _, ct := range containers {
-		err = c.dockerClient.ContainerRemove(ctx, ct.ID, types.ContainerRemoveOptions{Force: true})
-		if err != nil {
-			return err
+		typ, isPresent := ct.Labels["type"]
+		if isPresent && typ == "jointfaas" {
+			err = c.dockerClient.ContainerRemove(ctx, ct.ID, types.ContainerRemoveOptions{Force: true})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -78,9 +82,15 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 	container, err := c.dockerClient.ContainerCreate(context.TODO(),
 		&dtc.Config{
 			Image: image,
-			Env: []string{"WORK_HOST=" + c.localhost},
+			Env: []string{"WORK_HOST=" + c.localhost, "MEMORY=" + strconv.FormatInt(memorySize, 10)},
+			Labels: map[string]string{"type": "jointfaas"},
 		},
-		nil, nil, "")
+		&dtc.HostConfig{
+			Resources: dtc.Resources{
+				Memory: memorySize * 1024 * 1024,
+			},
+		}, nil, "")
+	
 	if err != nil {
 		log.Println(err.Error())
 		return "", err

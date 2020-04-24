@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -95,6 +96,10 @@ func main() {
 		ListenPort: cfg.GrpcListenPort,
 		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
+	if err != nil {
+		panic(err)
+	}
+	err = client.ClearContainer(context.TODO())
 	if err != nil {
 		panic(err)
 	}
