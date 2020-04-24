@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 			return
 		}
 		rpcClient := wpb.NewWorkerClient(conn)
-		res, err := rpcClient.InitFunction(context.TODO(), &wpb.InitFunctionRequest{
+		initRes, err := rpcClient.InitFunction(context.TODO(), &wpb.InitFunctionRequest{
 			FuncName: funcName,
 			Image: image,
 			Runtime: runtime,
@@ -42,10 +42,16 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		fmt.Print(res.GetMsg())
-		if res.GetCode() != wpb.InitFunctionResponse_OK {
+		fmt.Print(initRes.GetMsg())
+		if initRes.GetCode() != wpb.InitFunctionResponse_OK {
 			return
 		}
+
+		invokeRes, err := rpcClient.Invoke(context.TODO(), &wpb.InvokeRequest{
+			Name: funcName,
+			Payload: []byte(payload),
+		})
+		fmt.Print(string(invokeRes.GetOutput()))
 	},
 }
 
