@@ -102,8 +102,10 @@ func main() {
 	s := grpc.NewServer()
 	wpb.RegisterWorkerServer(s, client)
 	log.Println("rpc server start")
-	s.Serve(lis)
-
 	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
-	log.Fatal(http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil))
+	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request)  {
+		s.ServeHTTP(w, r)
+	})
+	go http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil)
+	s.Serve(lis)
 }

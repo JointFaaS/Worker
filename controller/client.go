@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"sync"
+	"time"
 
 	wc "github.com/JointFaaS/Worker/container"
 	wpb "github.com/JointFaaS/Worker/pb/worker"
@@ -17,10 +18,14 @@ type Client struct {
 
 	dockerClient *dc.Client
 
+	// funcName to CreatingContainerNum
+	creatingContainerNumMap map[string]int64
+	creatingContainerMu sync.Mutex
+
 	// funcName to CodeURI and Image
 	funcResourceMap map[string]*FuncResource
 
-	resourceRWMu sync.RWMutex
+	resourceMu sync.RWMutex
 
 	// funcName to []Container
 	funcContainerMap map[string]*list.List
@@ -29,6 +34,8 @@ type Client struct {
 	idleContainerMap map[int64]*list.List
 
 	containerMu sync.RWMutex
+
+	idleContainerMu sync.Mutex
 
 	ctx context.Context
 
@@ -53,8 +60,11 @@ func NewClient(config Config) (*Client, error) {
 
 	c := &Client{
 		containerMu:      sync.RWMutex{},
-		resourceRWMu:     sync.RWMutex{},
+		resourceMu:       sync.RWMutex{},
+		creatingContainerMu: sync.Mutex{},
+		idleContainerMu: sync.Mutex{},
 		dockerClient:     dockerClient,
+		creatingContainerNumMap: make(map[string]int64),
 		funcResourceMap:  make(map[string]*FuncResource),
 		funcContainerMap: make(map[string]*list.List),
 		idleContainerMap: make(map[int64]*list.List),
@@ -102,6 +112,10 @@ func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.Invok
 		if err != nil {
 			return &wpb.InvokeResponse{Code: wpb.InvokeResponse_NO_SUCH_FUNCTION, Output: nil}, nil
 		}
+		// TODO
+		// I never find the best way to handle the async container creating
+		// sleep is a simple solution, just retry and ensure there is no deadlock
+		time.Sleep(time.Millisecond * 500)
 	}
 	return &wpb.InvokeResponse{Code: wpb.InvokeResponse_RETRY, Output: nil}, nil
 }
@@ -113,7 +127,7 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 		Msg:  "",
 	}
 	memorySize := req.GetMemory()
-	memorySize = memorySize - memorySize % 128
+	memorySize = memorySize - memorySize%128
 	if memorySize < 128 || memorySize > 4096 {
 		res.Code = wpb.RegisterResponse_ERROR
 		res.Msg = "Invalid Memory, it should be in [128, 4096]"
@@ -126,23 +140,30 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 		res.Msg = err.Error()
 		return
 	}
-	c.containerMu.Lock()
+
 	if req.GetFuncName() == "" {
+		c.idleContainerMu.Lock()
 		containers, isPresent := c.idleContainerMap[memorySize]
 		if isPresent == false {
 			containers = list.New()
 			c.idleContainerMap[memorySize] = containers
 		}
 		containers.PushBack(container)
+		c.idleContainerMu.Unlock()
 	} else {
+		c.containerMu.Lock()
 		containers, isPresent := c.funcContainerMap[req.GetFuncName()]
 		if isPresent == false {
 			containers = list.New()
 			c.funcContainerMap[req.GetFuncName()] = containers
 		}
 		containers.PushBack(container)
+		c.containerMu.Unlock()
+
+		c.creatingContainerMu.Lock()
+		c.creatingContainerNumMap[req.GetFuncName()] = 0
+		c.creatingContainerMu.Unlock()
 	}
-	c.containerMu.Unlock()
 	return
 }
 
@@ -152,14 +173,14 @@ func (c *Client) InitFunction(ctx context.Context, req *wpb.InitFunctionRequest)
 		FuncName:   req.GetFuncName(),
 		Image:      req.GetImage(),
 		CodeURL:    req.GetCodeURI(),
-		Runtime:	req.GetRuntime(),
+		Runtime:    req.GetRuntime(),
 		Timeout:    req.GetTimeout(),
 		MemorySize: req.GetMemorySize(),
 	}
 
-	c.resourceRWMu.Lock()
+	c.resourceMu.Lock()
 	c.funcResourceMap[resource.FuncName] = resource
-	c.resourceRWMu.Unlock()
+	c.resourceMu.Unlock()
 
 	return &wpb.InitFunctionResponse{
 		Code: wpb.InitFunctionResponse_OK,
