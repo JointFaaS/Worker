@@ -32,7 +32,8 @@ func logInit() {
 type config struct {
 	WorkerID string `yaml:"workerID"`
 	WorkerSocketPath string `yaml:"workerSocketPath"`
-	ListenPort string `yaml:"listenPort"`
+	GrpcListenPort string `yaml:"GrpcListenPort"`
+	HTTPListenPort string `yaml:"HTTPListenPort"`
 	ManagerAddress string `yaml:"managerAddress"`
 	ContainerEnvVariables []string `yaml:"containerEnvVariables"`
 }
@@ -94,7 +95,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lis, err := net.Listen("tcp", cfg.ListenPort)
+	lis, err := net.Listen("tcp", cfg.GrpcListenPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -102,10 +103,10 @@ func main() {
 	s := grpc.NewServer()
 	wpb.RegisterWorkerServer(s, client)
 	log.Println("rpc server start")
-	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.ListenPort})
+	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.GrpcListenPort})
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request)  {
 		s.ServeHTTP(w, r)
 	})
-	go http.ListenAndServe("0.0.0.0:" + cfg.ListenPort, nil)
+	go http.ListenAndServe("0.0.0.0:" + cfg.HTTPListenPort, nil)
 	s.Serve(lis)
 }
