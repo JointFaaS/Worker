@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		fmt.Print(initRes.GetMsg())
+		fmt.Println(initRes.GetMsg())
 		if initRes.GetCode() != wpb.InitFunctionResponse_OK {
 			return
 		}
@@ -51,7 +51,8 @@ var rootCmd = &cobra.Command{
 			Name: funcName,
 			Payload: []byte(payload),
 		})
-		fmt.Print(string(invokeRes.GetOutput()))
+		fmt.Println(invokeRes.GetCode().String())
+		fmt.Println(string(invokeRes.GetOutput()))
 	},
 }
 
