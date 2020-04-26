@@ -1,4 +1,4 @@
-.PHONY: proto worker clean
+.PHONY: proto worker tester clean
 
 worker:
 	go build -o build/worker
