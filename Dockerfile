@@ -1,4 +1,4 @@
-FROM golang:1.13 AS build
+FROM golang:1.13 
 
 WORKDIR /go/src/app
 
@@ -6,14 +6,8 @@ COPY . .
 
 RUN make worker
 
-FROM alpine:3
+RUN mkdir /root/.jfWorker
 
-WORKDIR /root/
+COPY config.yml /root/.jfWorker/
 
-RUN mkdir .jfWorker
-
-COPY config.yml .jfWorker/
-
-COPY --from=build /go/src/app/build/ .
-
-CMD ["/root/worker"]
+CMD ["/go/src/app/build/worker"]
