@@ -5,25 +5,26 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	wpb "github.com/JointFaaS/Worker/pb/worker"
-	"google.golang.org/grpc"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 var (
-	addr string
-	funcName string
-	image string
-	codeURI string
-	runtime string
-	payload string
+	addr       string
+	funcName   string
+	image      string
+	codeURI    string
+	runtime    string
+	payload    string
 	memorySize int64
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "worker-tester",
-	Short: "simple tester",
+var simpleCmd = &cobra.Command{
+	Use:   "simple tester",
+	Short: "simple",
 	Run: func(cmd *cobra.Command, args []string) {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
@@ -32,11 +33,11 @@ var rootCmd = &cobra.Command{
 		}
 		rpcClient := wpb.NewWorkerClient(conn)
 		initRes, err := rpcClient.InitFunction(context.TODO(), &wpb.InitFunctionRequest{
-			FuncName: funcName,
-			Image: image,
-			Runtime: runtime,
-			CodeURI: codeURI,
-			Timeout: 3,
+			FuncName:   funcName,
+			Image:      image,
+			Runtime:    runtime,
+			CodeURI:    codeURI,
+			Timeout:    3,
 			MemorySize: memorySize,
 		})
 		if err != nil {
@@ -48,7 +49,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		invokeRes, err := rpcClient.Invoke(context.TODO(), &wpb.InvokeRequest{
-			Name: funcName,
+			Name:    funcName,
 			Payload: []byte(payload),
 		})
 		fmt.Println(invokeRes.GetCode().String())
@@ -56,14 +57,66 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var perfCmd = &cobra.Command{
+	Use:   "perf tester",
+	Short: "perf",
+	Run: func(cmd *cobra.Command, args []string) {
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			log.Fatalf("can not connect with server %v", err)
+			return
+		}
+		rpcClient := wpb.NewWorkerClient(conn)
+		initRes, err := rpcClient.InitFunction(context.TODO(), &wpb.InitFunctionRequest{
+			FuncName:   funcName,
+			Image:      image,
+			Runtime:    runtime,
+			CodeURI:    codeURI,
+			Timeout:    3,
+			MemorySize: memorySize,
+		})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(initRes.GetMsg())
+		if initRes.GetCode() != wpb.InitFunctionResponse_OK {
+			return
+		}
+		timeSlice := make([]time.Duration, 20, 20)
+		for i := 0; i < 20; i++ {
+			start := time.Now()
+			_, err = rpcClient.Invoke(context.TODO(), &wpb.InvokeRequest{
+				Name:    funcName,
+				Payload: []byte(payload),
+			})
+			cost := time.Since(start)
+			timeSlice[i] = cost
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		for i := 0; i < 20; i++ {
+			fmt.Println(int64(timeSlice[i]))
+		}
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "worker-tester",
+	Short: "tester",
+}
+
 func rootInit() {
-	rootCmd.Flags().StringVarP(&addr, "addr", "a", "localhost:8001", "Tested Worker Addr")
-	rootCmd.Flags().StringVarP(&funcName, "funcName", "f", "test", "Tested Func")
-	rootCmd.Flags().StringVarP(&image, "image", "i", "jointfaas-java8", "Tested Image")
-	rootCmd.Flags().StringVarP(&codeURI, "codeURI", "u", "uri", "Source Code URI")
-	rootCmd.Flags().StringVarP(&runtime, "runtime", "r", "java8", "Tested Runtime")
-	rootCmd.Flags().StringVarP(&payload, "payload", "p", "{}", "Tested Payload")
-	rootCmd.Flags().Int64VarP(&memorySize, "memorySize", "m", 128, "The limitation of function memory(MB)")
+	rootCmd.PersistentFlags().StringVarP(&addr, "addr", "a", "localhost:8001", "Tested Worker Addr")
+	rootCmd.PersistentFlags().StringVarP(&funcName, "funcName", "f", "test", "Tested Func")
+	rootCmd.PersistentFlags().StringVarP(&image, "image", "i", "jointfaas-java8", "Tested Image")
+	rootCmd.PersistentFlags().StringVarP(&codeURI, "codeURI", "u", "uri", "Source Code URI")
+	rootCmd.PersistentFlags().StringVarP(&runtime, "runtime", "r", "java8", "Tested Runtime")
+	rootCmd.PersistentFlags().StringVarP(&payload, "payload", "p", "{}", "Tested Payload")
+	rootCmd.PersistentFlags().Int64VarP(&memorySize, "memorySize", "m", 128, "The limitation of function memory(MB)")
+
+	rootCmd.AddCommand(simpleCmd, perfCmd)
 }
 
 func main() {
