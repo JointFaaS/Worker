@@ -62,8 +62,8 @@ func (c *Client) addSpecifiedContainer(funcName string) error {
 		return nil
 	}
 	c.idleContainerMu.Unlock()
-	c.addContainer(resource.Image, resource.MemorySize, resource.FuncName)
-	return nil
+	_, err := c.addContainer(resource.Image, resource.MemorySize, resource.FuncName)
+	return err
 }
 
 func (c *Client) addContainer(image string, memorySize int64, funcName string) (string, error) {
@@ -90,7 +90,9 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 				Memory: memorySize * 1024 * 1024,
 			},
 		}, nil, "")
-	
+
+	log.Printf("[liu] container %v create with no err\n", container.ID)
+
 	if err != nil {
 		log.Println(err.Error())
 		return "", err
@@ -100,6 +102,7 @@ func (c *Client) addContainer(image string, memorySize int64, funcName string) (
 		log.Println(err.Error())
 		return "", err
 	}
+	log.Printf("[liu] container start with no err\n")
 	return container.ID, nil
 }
 

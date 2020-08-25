@@ -1,0 +1,7 @@
+workerID: 2
+localhost: 172.17.0.1
+listenAddr: 0.0.0.0
+GrpcListenPort: 8092
+HTTPListenPort: 8003
+managerAddress: localhost:8080
+containerEnvVariables: [ "jointfaas_env=ali","accessKeyId=", "accessKeySecret=","region=cn-beijing" ]

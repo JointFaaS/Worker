@@ -27,7 +27,7 @@ type Client struct {
 
 	// funcName to CreatingContainerNum
 	creatingContainerNumMap map[string]int64
-	creatingContainerMu sync.Mutex
+	creatingContainerMu     sync.Mutex
 
 	// funcName to CodeURI and Image
 	funcResourceMap map[string]*FuncResource
@@ -54,8 +54,8 @@ type Client struct {
 // Config is used to initialize controller client
 // It supports adjusting the resource limits
 type Config struct {
-	Localhost string
-	ListenPort string
+	Localhost             string
+	ListenPort            string
 	ContainerEnvVariables []string
 }
 
@@ -68,20 +68,20 @@ func NewClient(config Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	c := &Client{
-		localhost:		  config.Localhost + ":" + config.ListenPort,
-		containerMu:      sync.RWMutex{},
-		resourceMu:       sync.RWMutex{},
-		creatingContainerMu: sync.Mutex{},
-		idleContainerMu: sync.Mutex{},
-		dockerClient:     dockerClient,
+		localhost:               config.Localhost + ":" + config.ListenPort,
+		containerMu:             sync.RWMutex{},
+		resourceMu:              sync.RWMutex{},
+		creatingContainerMu:     sync.Mutex{},
+		idleContainerMu:         sync.Mutex{},
+		dockerClient:            dockerClient,
 		creatingContainerNumMap: make(map[string]int64),
-		funcResourceMap:  make(map[string]*FuncResource),
-		funcContainerMap: make(map[string]*list.List),
-		idleContainerMap: make(map[int64]*list.List),
-		ctx:              ctx,
-		cancel:           cancel,
-		config:           config,
-		wg:               new(sync.WaitGroup),
+		funcResourceMap:         make(map[string]*FuncResource),
+		funcContainerMap:        make(map[string]*list.List),
+		idleContainerMap:        make(map[int64]*list.List),
+		ctx:                     ctx,
+		cancel:                  cancel,
+		config:                  config,
+		wg:                      new(sync.WaitGroup),
 	}
 
 	return c, nil
@@ -99,12 +99,14 @@ func (c *Client) Invoke(ctx context.Context, req *wpb.InvokeRequest) (*wpb.Invok
 	for i := 0; i < 3; i++ {
 		c.containerMu.RLock()
 		containers, isPresent := c.funcContainerMap[req.GetName()]
+		log.Printf("[liu] functionContainerMap: %v\n", c.funcContainerMap)
 		c.containerMu.RUnlock()
 		if isPresent {
 			for e := containers.Front(); e != nil; e = e.Next() {
 				// if the connection is broken, someone will reset the container
 				output, err := e.Value.(*wc.Meta).InvokeFunc(ctx, req.GetName(), req.GetPayload())
 				if err == nil {
+					log.Printf("[liu] invoke function succeed, output: %v， err: %v\n", output, err)
 					return &wpb.InvokeResponse{Code: wpb.InvokeResponse_OK, Output: output}, nil
 				}
 				switch err.(type) {
@@ -137,7 +139,7 @@ func (c *Client) Register(ctx context.Context, req *wpb.RegisterRequest) (res *w
 	}
 	err = nil
 	memorySize := req.GetMemory()
-	memorySize = memorySize - memorySize % 128
+	memorySize = memorySize - memorySize%128
 	if memorySize < 128 || memorySize > 4096 {
 		res.Code = wpb.RegisterResponse_ERROR
 		res.Msg = "Invalid Memory, it should be in [128, 4096]"

@@ -46,6 +46,7 @@ func (m *Meta) GetRuntime() string {
 
 // NewMeta returns a container handler which maintains a rpc connection with the container
 func NewMeta(containerHost string, funcName string, runtime string) (*Meta, error) {
+	log.Printf("[liu] connect to container:\ncontainerHost:%s, funcName:%s, runtime:%s\n", containerHost, funcName, runtime)
 	conn, err := grpc.Dial(containerHost, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("can not connect with server %v", err)
@@ -53,6 +54,7 @@ func NewMeta(containerHost string, funcName string, runtime string) (*Meta, erro
 	}
 
 	containerClient := cpb.NewContainerClient(conn)
+	log.Printf("[liu] connect to container succeed\n")
 	return &Meta{
 		mu: sync.Mutex{},
 		funcName: funcName,

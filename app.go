@@ -21,8 +21,8 @@ import (
 
 type initRequestBody struct {
 	FuncName string `json:"funcName"`
-	Image string	`json:"image"`
-	CodeURI string	`json:"codeURI"`
+	Image    string `json:"image"`
+	CodeURI  string `json:"codeURI"`
 }
 
 func logInit() {
@@ -31,18 +31,18 @@ func logInit() {
 }
 
 type config struct {
-	WorkerID string `yaml:"workerID"`
-	Localhost string `yaml:"localhost"`
-	ListenAddr string `yaml:"listenAddr"`
-	GrpcListenPort string `yaml:"GrpcListenPort"`
-	HTTPListenPort string `yaml:"HTTPListenPort"`
-	ManagerAddress string `yaml:"managerAddress"`
+	WorkerID              string   `yaml:"workerID"`
+	Localhost             string   `yaml:"localhost"`
+	ListenAddr            string   `yaml:"listenAddr"`
+	GrpcListenPort        string   `yaml:"GrpcListenPort"`
+	HTTPListenPort        string   `yaml:"HTTPListenPort"`
+	ManagerAddress        string   `yaml:"managerAddress"`
 	ContainerEnvVariables []string `yaml:"containerEnvVariables"`
 }
 
 type workerRegistrationBody struct {
 	WorkerPort string `json:"workerPort"`
-	WorkerID string `json:"workerID"`
+	WorkerID   string `json:"workerID"`
 }
 
 type workerRegistrationResponseBody struct {
@@ -60,12 +60,12 @@ func registerMeToManager(managerAddr string, body workerRegistrationBody) (*work
 		panic(err)
 	}
 
-	resp, err := http.Post("http://" + managerAddr + "/register", "application/json;charset=UTF-8", bytes.NewReader(jsonBody))
+	resp, err := http.Post("http://"+managerAddr+"/register", "application/json;charset=UTF-8", bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("Unavailable Manager")
-	} 
+	}
 	var res workerRegistrationResponseBody
 	err = json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
@@ -81,8 +81,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	cfgFile, err := ioutil.ReadFile(path.Join(home, "/.jfWorker/config.yml"))
+	cfgFilePath := path.Join(home, "/.jfWorker/config.yml")
+	if len(os.Args) > 1 {
+		pwd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		cfgFilePath = path.Join(pwd, os.Args[1])
+	}
+	cfgFile, err := ioutil.ReadFile(cfgFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -92,8 +99,8 @@ func main() {
 		panic(err)
 	}
 	client, err := controller.NewClient(controller.Config{
-		Localhost: cfg.Localhost,
-		ListenPort: cfg.GrpcListenPort,
+		Localhost:             cfg.Localhost,
+		ListenPort:            cfg.GrpcListenPort,
 		ContainerEnvVariables: cfg.ContainerEnvVariables,
 	})
 	if err != nil {
@@ -103,7 +110,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lis, err := net.Listen("tcp", cfg.ListenAddr + ":" + cfg.GrpcListenPort)
+	lis, err := net.Listen("tcp", cfg.ListenAddr+":"+cfg.GrpcListenPort)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -112,9 +119,9 @@ func main() {
 	wpb.RegisterWorkerServer(s, client)
 	log.Println("rpc server start")
 	go registerMeToManager(cfg.ManagerAddress, workerRegistrationBody{WorkerID: cfg.WorkerID, WorkerPort: cfg.GrpcListenPort})
-	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request)  {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		s.ServeHTTP(w, r)
 	})
-	go http.ListenAndServe("0.0.0.0:" + cfg.HTTPListenPort, nil)
+	go http.ListenAndServe("0.0.0.0:"+cfg.HTTPListenPort, nil)
 	s.Serve(lis)
 }
